@@ -5,11 +5,24 @@ use App\Http\Controllers\EditorialController;
 use App\Http\Controllers\RssFeedController;
 use App\Http\Controllers\SearchTermController;
 use App\Http\Controllers\TriageController;
+use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
+    if (\App\Models\User::count() === 0) {
+        return redirect()->route('setup');
+    }
     return redirect()->route('triage');
 });
+
+Route::get('/setup', function () {
+    if (\App\Models\User::count() > 0) {
+        return redirect()->route('login');
+    }
+    return view('setup');
+})->name('setup');
+
+Route::post('/setup', [UserController::class, 'setup'])->name('setup.store');
 
 Route::middleware(['auth'])->group(function () {
     Route::get('/triage', [TriageController::class, 'index'])->name('triage');
@@ -37,6 +50,11 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/rss-feeds', [RssFeedController::class, 'store'])->name('rss-feeds.store');
     Route::put('/rss-feeds/{feed}', [RssFeedController::class, 'update'])->name('rss-feeds.update');
     Route::delete('/rss-feeds/{feed}', [RssFeedController::class, 'destroy'])->name('rss-feeds.destroy');
+
+    Route::get('/users', [UserController::class, 'index'])->name('users.index');
+    Route::post('/users', [UserController::class, 'store'])->name('users.store');
+    Route::put('/users/{user}', [UserController::class, 'update'])->name('users.update');
+    Route::delete('/users/{user}', [UserController::class, 'destroy'])->name('users.destroy');
 });
 
 require __DIR__.'/auth.php';

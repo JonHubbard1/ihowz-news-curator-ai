@@ -60,6 +60,11 @@
                     </a>
                 </li>
                 <li>
+                    <a href="{{ route('users.index') }}" @click="menuOpen = false" class="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium text-gray-700 hover:bg-gray-100">
+                        <span class="h-2 w-2 rounded-full bg-pink-500"></span> Users
+                    </a>
+                </li>
+                <li>
                     <a href="{{ route('admin') }}" @click="menuOpen = false" class="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium text-gray-700 hover:bg-gray-100">
                         <span class="h-2 w-2 rounded-full bg-purple-500"></span> Admin
                     </a>

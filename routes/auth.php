@@ -4,6 +4,9 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/login', function () {
+    if (\App\Models\User::count() === 0) {
+        return redirect()->route('setup');
+    }
     return view('auth.login');
 })->name('login');
 
