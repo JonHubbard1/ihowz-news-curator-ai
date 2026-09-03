@@ -32,6 +32,7 @@ class UserController extends Controller
             'name' => $data['name'],
             'email' => $data['email'],
             'password' => Hash::make($data['password']),
+            'is_admin' => true,
         ]);
 
         return redirect()->route('login')->with('success', 'Admin user created. Please log in.');
