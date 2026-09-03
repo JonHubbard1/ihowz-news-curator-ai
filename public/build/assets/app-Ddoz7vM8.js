@@ -1,0 +1,1 @@
+import.meta.webpackHot?.accept(),`serviceWorker`in navigator&&window.addEventListener(`load`,()=>{navigator.serviceWorker.register(`/service-worker.js`).then(e=>console.log(`SW registered:`,e.scope)).catch(e=>console.error(`SW registration failed:`,e))});

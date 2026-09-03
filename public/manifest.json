@@ -1,0 +1,23 @@
+{
+    "name": "iHowz News Curator",
+    "short_name": "iHowz News",
+    "description": "AI-driven PRS news curation for iHowz",
+    "start_url": "/triage",
+    "display": "standalone",
+    "background_color": "#ffffff",
+    "theme_color": "#0f766e",
+    "orientation": "portrait",
+    "icons": [
+        {
+            "src": "/icon-192.png",
+            "sizes": "192x192",
+            "type": "image/png",
+            "purpose": "any maskable"
+        },
+        {
+            "src": "/icon-512.png",
+            "sizes": "512x512",
+            "type": "image/png"
+        }
+    ]
+}
