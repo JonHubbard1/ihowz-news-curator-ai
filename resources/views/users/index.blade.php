@@ -51,6 +51,11 @@
                 </div>
             </div>
 
+            <label class="flex items-center gap-2 text-sm text-gray-700">
+                <input type="checkbox" name="is_admin" value="1" {{ old('is_admin') ? 'checked' : '' }}>
+                Admin user
+            </label>
+
             <button type="submit" class="w-full rounded-lg bg-teal-700 px-4 py-3 text-sm font-semibold text-white active:bg-teal-800">
                 Add user
             </button>
@@ -96,6 +101,11 @@
                                         class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm">
                                 </div>
                             </div>
+
+                            <label class="flex items-center gap-2 text-sm text-gray-700">
+                                <input type="checkbox" name="is_admin" value="1" @checked(old('is_admin', $user->is_admin))>
+                                Admin user
+                            </label>
 
                             <div class="grid grid-cols-2 gap-3">
                                 <button type="submit" class="rounded-lg bg-gray-900 px-3 py-2 text-sm font-semibold text-white active:bg-gray-800">

@@ -43,12 +43,14 @@ class UserController extends Controller
             'name' => 'required|string|max:255',
             'email' => 'required|email|max:255|unique:users,email',
             'password' => 'required|string|min:8|confirmed',
+            'is_admin' => 'nullable|boolean',
         ]);
 
         User::create([
             'name' => $data['name'],
             'email' => $data['email'],
             'password' => Hash::make($data['password']),
+            'is_admin' => $request->boolean('is_admin'),
         ]);
 
         return back()->with('success', 'User added.');
@@ -60,11 +62,13 @@ class UserController extends Controller
             'name' => 'required|string|max:255',
             'email' => 'required|email|max:255|unique:users,email,'.$user->id,
             'password' => 'nullable|string|min:8|confirmed',
+            'is_admin' => 'nullable|boolean',
         ]);
 
         $update = [
             'name' => $data['name'],
             'email' => $data['email'],
+            'is_admin' => $request->boolean('is_admin'),
         ];
 
         if (! empty($data['password'])) {
@@ -76,6 +80,25 @@ class UserController extends Controller
         return back()->with('success', 'User updated.');
     }
 
+    public function editPassword()
+    {
+        return view('auth.password-edit');
+    }
+
+    public function updatePassword(Request $request)
+    {
+        $data = $request->validate([
+            'current_password' => 'required|string|current_password',
+            'password' => 'required|string|min:8|confirmed',
+        ]);
+
+        /** @var User $user */
+        $user = $request->user();
+        $user->update(['password' => Hash::make($data['password'])]);
+
+        return back()->with('success', 'Password changed.');
+    }
+
     public function destroy(User $user)
     {
         // Prevent deleting the last user so the app doesn't lock itself out.
@@ -84,8 +107,9 @@ class UserController extends Controller
         }
 
         // Prevent self-deletion.
+        /** @var User|null $currentUser */
         $currentUser = auth()->user();
-        if ($currentUser && $user->id === $currentUser->id) {
+        if ($currentUser instanceof User && $user->id === $currentUser->id) {
             return back()->with('error', 'You cannot remove your own account while logged in.');
         }
 

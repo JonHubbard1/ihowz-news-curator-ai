@@ -14,23 +14,35 @@
         <h3 class="mb-3 text-sm font-semibold uppercase tracking-wide text-gray-500">Usage Dashboard</h3>
         <div class="grid grid-cols-2 gap-4">
             <div class="rounded-lg bg-gray-50 p-3">
-                <p class="text-xs text-gray-500">Est. monthly spend</p>
-                <p class="text-xl font-bold text-gray-900">£{{ number_format($spendEstimate * 0.79, 2) }}</p>
-                <p class="text-xs text-gray-400">${{ number_format($spendEstimate, 2) }}</p>
+                <p class="text-xs text-gray-500">Uninvoiced AI spend</p>
+                <p class="text-xl font-bold text-gray-900">£{{ number_format($uninvoicedSpendGbp, 2) }}</p>
+                <p class="text-xs text-gray-400">${{ number_format($uninvoicedSpendUsd, 2) }}</p>
             </div>
             <div class="rounded-lg bg-gray-50 p-3">
-                <p class="text-xs text-gray-500">Processed</p>
+                <p class="text-xs text-gray-500">Uninvoiced processed</p>
+                <p class="text-xl font-bold text-gray-900">{{ $uninvoicedProcessed }}</p>
+                <p class="text-xs text-gray-400">{{ $uninvoicedPublished }} published</p>
+            </div>
+            <div class="rounded-lg bg-gray-50 p-3">
+                <p class="text-xs text-gray-500">AI calls</p>
+                <p class="text-xl font-bold text-gray-900">{{ $totalLlmCalls + $totalImageCalls }}</p>
+                <p class="text-xs text-gray-400">{{ $totalLlmCalls }} LLM / {{ $totalImageCalls }} image</p>
+            </div>
+            <div class="rounded-lg bg-gray-50 p-3">
+                <p class="text-xs text-gray-500">Total processed</p>
                 <p class="text-xl font-bold text-gray-900">{{ $totalProcessed }}</p>
-            </div>
-            <div class="rounded-lg bg-gray-50 p-3">
-                <p class="text-xs text-gray-500">Published</p>
-                <p class="text-xl font-bold text-gray-900">{{ $totalPublished }}</p>
-            </div>
-            <div class="rounded-lg bg-gray-50 p-3">
-                <p class="text-xs text-gray-500">Tokens est.</p>
-                <p class="text-xl font-bold text-gray-900">{{ number_format($tokensEstimate) }}</p>
+                <p class="text-xs text-gray-400">{{ $totalPublished }} published</p>
             </div>
         </div>
+
+        <form method="POST" action="{{ route('admin.reset-costs') }}" class="mt-4">
+            @csrf
+            @method('PUT')
+            <button type="submit" onclick="return confirm('Reset the uninvoiced cost counter? This will mark all current costs as invoiced.')"
+                class="w-full rounded-lg bg-red-600 px-4 py-3 text-sm font-semibold text-white active:bg-red-700">
+                Reset uninvoiced costs
+            </button>
+        </form>
     </section>
 
     <!-- AI Settings -->
@@ -79,6 +91,40 @@
                 <div>
                     <label class="mb-1 block text-sm font-medium text-gray-700">FAL Model</label>
                     <input name="fal_model" value="{{ $ai->fal_model ?? 'fal-ai/flux/dev' }}" placeholder="fal-ai/flux/dev" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm">
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="mb-1 block text-sm font-medium text-gray-700">LLM input cost / 1k tokens (USD)</label>
+                    <input type="number" step="0.000001" name="llm_input_cost_per_1k" value="{{ $ai->llm_input_cost_per_1k }}" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm">
+                </div>
+                <div>
+                    <label class="mb-1 block text-sm font-medium text-gray-700">LLM output cost / 1k tokens (USD)</label>
+                    <input type="number" step="0.000001" name="llm_output_cost_per_1k" value="{{ $ai->llm_output_cost_per_1k }}" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm">
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="mb-1 block text-sm font-medium text-gray-700">OpenAI image cost / image (USD)</label>
+                    <input type="number" step="0.000001" name="image_cost_per_image" value="{{ $ai->image_cost_per_image }}" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm">
+                </div>
+                <div>
+                    <label class="mb-1 block text-sm font-medium text-gray-700">FAL image cost / image (USD)</label>
+                    <input type="number" step="0.000001" name="fal_cost_per_image" value="{{ $ai->fal_cost_per_image }}" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm">
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="mb-1 block text-sm font-medium text-gray-700">Cost markup multiplier</label>
+                    <input type="number" step="0.01" name="cost_markup_multiplier" value="{{ $ai->cost_markup_multiplier }}" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm">
+                    <p class="mt-1 text-xs text-gray-500">Costs displayed on the dashboard and logged per operation are multiplied by this value. Set to 1.0 to charge at cost.</p>
+                </div>
+                <div>
+                    <label class="mb-1 block text-sm font-medium text-gray-700">Target article length (words)</label>
+                    <input type="number" name="target_article_length" value="{{ $ai->target_article_length }}" min="200" max="3000" required class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm">
                 </div>
             </div>
 

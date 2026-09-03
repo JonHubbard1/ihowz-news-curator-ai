@@ -4,7 +4,10 @@ namespace App\Services;
 
 use App\Models\Story;
 use App\Models\WpSetting;
-use Illuminate\Support\Facades\Http;
+use GuzzleHttp\Client;
+use GuzzleHttp\Exception\ClientException;
+use GuzzleHttp\Exception\RequestException;
+use GuzzleHttp\RequestOptions;
 
 class WordPressService
 {
@@ -31,17 +34,96 @@ class WordPressService
         ];
     }
 
+    /**
+     * Build a Guzzle client configured for the configured WordPress host.
+     *
+     * Herd's .test DNS resolver only returns A records; PHP/cURL's dual-stack
+     * lookup stalls waiting for an AAAA response. We bypass system DNS by
+     * pinning the WordPress host to 127.0.0.1 via curl's resolve option and
+     * forcing IPv4.
+     */
+    private function client(): Client
+    {
+        $baseUrl = $this->baseUrl();
+        $host = parse_url($baseUrl, PHP_URL_HOST) ?: 'localhost';
+        $port = parse_url($baseUrl, PHP_URL_PORT) ?: 80;
+        $scheme = parse_url($baseUrl, PHP_URL_SCHEME) ?: 'http';
+        $port = $port ?: ($scheme === 'https' ? 443 : 80);
+
+        return new Client([
+            RequestOptions::VERIFY => false,
+            RequestOptions::TIMEOUT => 30,
+            RequestOptions::CONNECT_TIMEOUT => 5,
+            RequestOptions::FORCE_IP_RESOLVE => 'v4',
+            'curl' => [
+                CURLOPT_RESOLVE => ["{$host}:{$port}:127.0.0.1"],
+            ],
+        ]);
+    }
+
+    private function request(string $method, string $uri, array $options = []): array
+    {
+        try {
+            $response = $this->client()->request($method, $uri, array_merge([
+                'headers' => $this->headers(),
+                'http_errors' => true,
+            ], $options));
+        } catch (ClientException $e) {
+            $this->handleClientError($e);
+        } catch (RequestException $e) {
+            throw new \RuntimeException('WordPress request failed: '.$e->getMessage(), 0, $e);
+        }
+
+        $body = (string) $response->getBody();
+
+        return json_decode($body, true) ?? [];
+    }
+
+    private function handleClientError(ClientException $exception): never
+    {
+        $response = $exception->getResponse();
+        $status = $response?->getStatusCode();
+        $body = [];
+
+        if ($response) {
+            try {
+                $body = json_decode((string) $response->getBody(), true) ?? [];
+            } catch (\Throwable) {
+                // Ignore malformed JSON bodies.
+            }
+        }
+
+        $message = $body['message'] ?? $exception->getMessage();
+
+        if ($status === 401) {
+            throw new \RuntimeException(
+                'WordPress authentication failed. Please ensure the username and application password are correct and that Application Passwords are enabled.',
+                401,
+                $exception
+            );
+        }
+
+        if ($status === 403) {
+            throw new \RuntimeException(
+                'WordPress permission denied: '.$message,
+                403,
+                $exception
+            );
+        }
+
+        throw new \RuntimeException('WordPress API error ('.$status.'): '.$message, $status ?? 0, $exception);
+    }
+
     public function publish(Story $story): array
     {
         $base = $this->baseUrl();
-        $headers = $this->headers();
 
-        $categoryId = $this->ensureCategory($base, $story->suggested_category ?: 'News', $headers);
-        $tagIds = $this->ensureTags($base, $story->suggested_tags ?: [], $headers);
+        $categoryId = $this->ensureCategory($base, $story->suggested_category ?: 'News');
+        $tagIds = $this->ensureTags($base, $story->suggested_tags ?: []);
 
         $featuredMediaId = null;
         if ($story->image_url) {
-            $featuredMediaId = $this->uploadFeaturedImage($base, $story->image_url, $story->headline, $headers);
+            $featuredMediaId = $this->uploadFeaturedImage($base, $story->image_url, $story->headline);
         }
 
         $payload = [
@@ -56,13 +138,9 @@ class WordPressService
             $payload['featured_media'] = $featuredMediaId;
         }
 
-        $response = Http::withHeaders($headers)
-            ->withOptions(['verify' => false])
-            ->timeout(30)
-            ->post("{$base}/wp-json/wp/v2/posts", $payload);
-
-        $response->throw();
-        $wpPost = $response->json();
+        $wpPost = $this->request('POST', "{$base}/wp-json/wp/v2/posts", [
+            'json' => $payload,
+        ]);
 
         $story->update([
             'wp_post_id' => $wpPost['id'] ?? null,
@@ -77,41 +155,35 @@ class WordPressService
         ];
     }
 
-    private function ensureCategory(string $base, string $name, array $headers): int
+    private function ensureCategory(string $base, string $name): int
     {
-        $search = Http::withHeaders(['Authorization' => $headers['Authorization']])
-            ->withOptions(['verify' => false])
-            ->timeout(20)
-            ->get("{$base}/wp-json/wp/v2/categories", ['search' => $name]);
-        $search->throw();
+        $categories = $this->request('GET', "{$base}/wp-json/wp/v2/categories", [
+            'query' => ['search' => $name],
+        ]);
 
-        foreach ($search->json() as $cat) {
+        foreach ($categories as $cat) {
             if (strtolower($cat['name']) === strtolower($name)) {
                 return $cat['id'];
             }
         }
 
-        $create = Http::withHeaders($headers)
-            ->withOptions(['verify' => false])
-            ->timeout(20)
-            ->post("{$base}/wp-json/wp/v2/categories", ['name' => $name]);
-        $create->throw();
+        $created = $this->request('POST', "{$base}/wp-json/wp/v2/categories", [
+            'json' => ['name' => $name],
+        ]);
 
-        return $create->json()['id'];
+        return $created['id'];
     }
 
-    private function ensureTags(string $base, array $tags, array $headers): array
+    private function ensureTags(string $base, array $tags): array
     {
         $ids = [];
         foreach ($tags as $tag) {
-            $search = Http::withHeaders(['Authorization' => $headers['Authorization']])
-                ->withOptions(['verify' => false])
-                ->timeout(20)
-                ->get("{$base}/wp-json/wp/v2/tags", ['search' => $tag]);
-            $search->throw();
-
             $found = null;
-            foreach ($search->json() as $t) {
+            $results = $this->request('GET', "{$base}/wp-json/wp/v2/tags", [
+                'query' => ['search' => $tag],
+            ]);
+
+            foreach ($results as $t) {
                 if (strtolower($t['name']) === strtolower($tag)) {
                     $found = $t['id'];
                     break;
@@ -121,37 +193,114 @@ class WordPressService
             if ($found) {
                 $ids[] = $found;
             } else {
-                $create = Http::withHeaders($headers)
-                    ->withOptions(['verify' => false])
-                    ->timeout(20)
-                    ->post("{$base}/wp-json/wp/v2/tags", ['name' => $tag]);
-                $create->throw();
-                $ids[] = $create->json()['id'];
+                $created = $this->request('POST', "{$base}/wp-json/wp/v2/tags", [
+                    'json' => ['name' => $tag],
+                ]);
+                $ids[] = $created['id'];
             }
         }
 
         return $ids;
     }
 
-    private function uploadFeaturedImage(string $base, string $imageUrl, string $title, array $headers): ?int
+    private function uploadFeaturedImage(string $base, string $imageUrl, string $title): ?int
     {
         try {
-            $imageBytes = Http::withOptions(['verify' => false])->timeout(60)->get($imageUrl)->body();
-            $uploadHeaders = array_merge($headers, ['Content-Disposition' => 'attachment; filename="featured.jpg"']);
+            $imageBytes = $this->client()->get($imageUrl, [
+                RequestOptions::TIMEOUT => 60,
+            ])->getBody()->getContents();
+
+            $imageBytes = $this->cropToBanner($imageBytes);
+
+            $uploadHeaders = array_merge($this->headers(), [
+                'Content-Disposition' => 'attachment; filename="featured.jpg"',
+            ]);
             unset($uploadHeaders['Content-Type']);
 
-            $response = Http::withHeaders($uploadHeaders)
-                ->withOptions(['verify' => false])
-                ->attach('file', $imageBytes, 'featured.jpg')
-                ->timeout(60)
-                ->post("{$base}/wp-json/wp/v2/media", ['title' => $title]);
-            $response->throw();
+            $uploaded = $this->request('POST', "{$base}/wp-json/wp/v2/media", [
+                'headers' => $uploadHeaders,
+                'multipart' => [
+                    [
+                        'name' => 'file',
+                        'contents' => $imageBytes,
+                        'filename' => 'featured.jpg',
+                    ],
+                    [
+                        'name' => 'title',
+                        'contents' => $title,
+                    ],
+                ],
+            ]);
 
-            return $response->json()['id'] ?? null;
+            return $uploaded['id'] ?? null;
         } catch (\Throwable $e) {
             report($e);
 
             return null;
         }
+    }
+
+    /**
+     * Crop/resample any source image to a 1280 x 512 banner from the centre.
+     */
+    private function cropToBanner(string $imageBytes): string
+    {
+        $source = imagecreatefromstring($imageBytes);
+        if (! $source) {
+            throw new \RuntimeException('Could not decode source image.');
+        }
+
+        $sourceWidth = imagesx($source);
+        $sourceHeight = imagesy($source);
+
+        $targetWidth = 1280;
+        $targetHeight = 512;
+
+        // If already the right size, return the original bytes unchanged.
+        if ($sourceWidth === $targetWidth && $sourceHeight === $targetHeight) {
+            imagedestroy($source);
+
+            return $imageBytes;
+        }
+
+        // Fit the source into the target aspect ratio (2.5:1) and crop from the centre.
+        $targetAspect = $targetWidth / $targetHeight;
+        $sourceAspect = $sourceWidth / $sourceHeight;
+
+        if ($sourceAspect > $targetAspect) {
+            // Source is wider than target: fit height, crop width.
+            $cropHeight = $sourceHeight;
+            $cropWidth = (int) round($sourceHeight * $targetAspect);
+        } else {
+            // Source is taller than target (or same aspect): fit width, crop height.
+            $cropWidth = $sourceWidth;
+            $cropHeight = (int) round($sourceWidth / $targetAspect);
+        }
+
+        $cropX = (int) round(($sourceWidth - $cropWidth) / 2);
+        $cropY = (int) round(($sourceHeight - $cropHeight) / 2);
+
+        $resized = imagecreatetruecolor($targetWidth, $targetHeight);
+        imagecopyresampled(
+            $resized,
+            $source,
+            0,
+            0,
+            $cropX,
+            $cropY,
+            $targetWidth,
+            $targetHeight,
+            $cropWidth,
+            $cropHeight
+        );
+
+        ob_start();
+        imagejpeg($resized, null, 90);
+        $output = ob_get_clean();
+
+        imagedestroy($source);
+        imagedestroy($resized);
+
+        return $output;
     }
 }

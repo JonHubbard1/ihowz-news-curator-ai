@@ -59,24 +59,43 @@
                         <span class="h-2 w-2 rounded-full bg-orange-500"></span> RSS Feeds
                     </a>
                 </li>
-                <li>
-                    <a href="{{ route('users.index') }}" @click="menuOpen = false" class="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium text-gray-700 hover:bg-gray-100">
-                        <span class="h-2 w-2 rounded-full bg-pink-500"></span> Users
-                    </a>
-                </li>
-                <li>
-                    <a href="{{ route('admin') }}" @click="menuOpen = false" class="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium text-gray-700 hover:bg-gray-100">
-                        <span class="h-2 w-2 rounded-full bg-purple-500"></span> Admin
-                    </a>
-                </li>
-                <li class="mt-4 border-t pt-4">
-                    <form method="POST" action="{{ route('logout') }}">
-                        @csrf
-                        <button type="submit" class="w-full rounded-lg px-3 py-3 text-left text-sm font-medium text-red-600 hover:bg-red-50">
-                            Log out
-                        </button>
-                    </form>
-                </li>
+                @auth
+                    <li>
+                        <a href="{{ route('user.costs') }}" @click="menuOpen = false" class="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium text-gray-700 hover:bg-gray-100">
+                            <span class="h-2 w-2 rounded-full bg-yellow-500"></span> Costs
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{{ route('user.settings') }}" @click="menuOpen = false" class="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium text-gray-700 hover:bg-gray-100">
+                            <span class="h-2 w-2 rounded-full bg-cyan-500"></span> Settings
+                        </a>
+                    </li>
+                    @if (auth()->user()->is_admin)
+                        <li>
+                            <a href="{{ route('users.index') }}" @click="menuOpen = false" class="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium text-gray-700 hover:bg-gray-100">
+                                <span class="h-2 w-2 rounded-full bg-pink-500"></span> Users
+                            </a>
+                        </li>
+                        <li>
+                            <a href="{{ route('admin') }}" @click="menuOpen = false" class="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium text-gray-700 hover:bg-gray-100">
+                                <span class="h-2 w-2 rounded-full bg-purple-500"></span> Admin
+                            </a>
+                        </li>
+                    @endif
+                    <li class="mt-4 border-t pt-4">
+                        <a href="{{ route('password.edit') }}" @click="menuOpen = false" class="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium text-gray-700 hover:bg-gray-100">
+                            <span class="h-2 w-2 rounded-full bg-gray-400"></span> Change Password
+                        </a>
+                    </li>
+                    <li>
+                        <form method="POST" action="{{ route('logout') }}">
+                            @csrf
+                            <button type="submit" class="w-full rounded-lg px-3 py-3 text-left text-sm font-medium text-red-600 hover:bg-red-50">
+                                Log out
+                            </button>
+                        </form>
+                    </li>
+                @endauth
             </ul>
         </nav>
 

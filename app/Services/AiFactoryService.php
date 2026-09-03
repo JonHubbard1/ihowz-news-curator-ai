@@ -7,9 +7,12 @@ use App\Models\Story;
 use App\Models\StoryEdit;
 use Illuminate\Support\Facades\Http;
 use OpenAI;
+use OpenAI\Exceptions\ErrorException;
 
 class AiFactoryService
 {
+    public function __construct(private AiCostLogger $costLogger) {}
+
     private function client(): OpenAI\Client
     {
         $settings = AiSetting::current();
@@ -50,6 +53,20 @@ class AiFactoryService
         return AiSetting::current()->brand_voice ?: config('news.brand_voice');
     }
 
+    private function imageCostUsd(): float
+    {
+        $settings = AiSetting::current();
+
+        return (float) $settings->image_cost_per_image * ((float) $settings->cost_markup_multiplier ?: 1.0);
+    }
+
+    private function falCostUsd(): float
+    {
+        $settings = AiSetting::current();
+
+        return (float) $settings->fal_cost_per_image * ((float) $settings->cost_markup_multiplier ?: 1.0);
+    }
+
     public function process(Story $story): void
     {
         $story->update(['status' => Story::STATUS_PROCESSING]);
@@ -62,8 +79,8 @@ class AiFactoryService
             // we still produce a draft so the editorial workflow is not blocked.
             $imageUrl = null;
             try {
-                $imagePrompt = $this->generateImagePrompt($headline, $article);
-                $imageUrl = $this->generateImage($imagePrompt);
+                $imagePrompt = $this->generateImagePrompt($story, $headline, $article);
+                $imageUrl = $this->generateImage($story, $imagePrompt);
             } catch (\Throwable $imageException) {
                 report($imageException);
             }
@@ -86,16 +103,19 @@ class AiFactoryService
     public function applyCommand(Story $story, string $command): string
     {
         $client = $this->client();
+        $model = $this->llmModel();
         $response = $client->chat()->create([
-            'model' => $this->llmModel(),
+            'model' => $model,
             'temperature' => 0.6,
             'messages' => [
                 ['role' => 'system', 'content' => 'You are an expert UK property-industry editor.'],
-                ['role' => 'user', 'content' => "Given this article for ".config('news.brand_name').":\n\n{$story->article_text}\n\nInstruction: {$command}\n\nReturn the revised full article text only, preserving the same tone and brand voice ({$this->brandVoice()})."],
+                ['role' => 'user', 'content' => 'Given this article for '.config('news.brand_name').":\n\n{$story->article_text}\n\nInstruction: {$command}\n\nReturn the revised full article text only, preserving the same tone and brand voice ({$this->brandVoice()})."],
             ],
         ]);
 
-        $revised = trim(        $response->choices[0]->message->content);
+        $this->costLogger->logEdit($story, $model, $response->toArray());
+
+        $revised = trim($response->choices[0]->message->content);
 
         StoryEdit::create([
             'story_id' => $story->id,
@@ -112,8 +132,8 @@ class AiFactoryService
 
     public function regenerateImage(Story $story): string
     {
-        $prompt = $this->generateImagePrompt($story->headline, $story->article_text ?? '');
-        $url = $this->generateImage($prompt);
+        $prompt = $this->generateImagePrompt($story, $story->headline, $story->article_text ?? '');
+        $url = $this->generateImage($story, $prompt);
         $story->update(['image_url' => $url]);
 
         return $url;
@@ -183,7 +203,9 @@ class AiFactoryService
             ? substr($rawText, 0, 6000)
             : "Source headline: {$story->headline}\nSource snippet: ".($story->snippet ?: 'No snippet available.');
 
-        $prompt = "You are the senior editor for ".config('news.brand_name').", a trusted voice in the UK Private Rental Sector.
+        $targetLength = (int) AiSetting::current()->target_article_length;
+
+        $prompt = 'You are the senior editor for '.config('news.brand_name').", a trusted voice in the UK Private Rental Sector.
 
 Your task: write a unique, original, SEO-friendly news article for landlords and letting agents.
 
@@ -194,6 +216,7 @@ CRITICAL RULES:
 - Do NOT copy sentences verbatim from the source.
 - Synthesize facts, add context, and explain what it means for landlords.
 - Tone: {$this->brandVoice()}.
+- Target length: approximately {$targetLength} words.
 - Structure: compelling headline, 1-paragraph intro, 3-5 concise body paragraphs, 1-paragraph practical takeaway.
 - Suggest a WordPress category (max 30 chars) and 3-5 tags.
 - Write a meta description (max 160 chars) that encourages clicks.
@@ -211,8 +234,9 @@ Source URL: {$story->url}
 Source content:
 {$sourceContext}";
 
+        $model = $this->llmModel();
         $response = $client->chat()->create([
-            'model' => $this->llmModel(),
+            'model' => $model,
             'temperature' => 0.7,
             'messages' => [
                 ['role' => 'system', 'content' => 'You are a helpful UK property-industry content editor. Output only valid JSON.'],
@@ -220,7 +244,9 @@ Source content:
             ],
         ]);
 
-        $content = trim(        $response->choices[0]->message->content);
+        $this->costLogger->logLlm($story, $model, $response->toArray());
+
+        $content = trim($response->choices[0]->message->content);
         $content = preg_replace('/^```json\s*|\s*```$/m', '', $content);
         $data = json_decode($content, true);
 
@@ -233,53 +259,61 @@ Source content:
         ];
     }
 
-    private function generateImagePrompt(string $headline, string $article): string
+    private function generateImagePrompt(Story $story, string $headline, string $article): string
     {
         $client = $this->client();
+        $model = $this->llmModel();
         $response = $client->chat()->create([
-            'model' => $this->llmModel(),
+            'model' => $model,
             'temperature' => 0.7,
             'messages' => [
-                ['role' => 'system', 'content' => 'You write photorealistic image generation prompts for DALL-E 3.'],
-                ['role' => 'user', 'content' => "Create a concise DALL-E 3 prompt for an article titled '{$headline}'. The image should look like a professional editorial photo related to UK property, landlords, or residential lettings. No text in the image. Article excerpt: ".substr($article, 0, 600)],
+                ['role' => 'system', 'content' => 'You write photorealistic image generation prompts for AI image models.'],
+                ['role' => 'user', 'content' => "Create a concise image generation prompt for an article titled '{$headline}'. The image should look like a professional editorial photo related to UK property, landlords, or residential lettings. The composition must work as a 1280px by 512px landscape banner: the image may be cropped at the edges, but the main subject/focal point must always be placed at the centre of the frame. No text, logos, or captions in the image. Article excerpt: ".substr($article, 0, 600)],
             ],
         ]);
 
-        return trim(        $response->choices[0]->message->content);
+        $this->costLogger->logLlm($story, $model, $response->toArray());
+
+        return trim($response->choices[0]->message->content);
     }
 
-    private function generateImage(string $prompt): string
+    private function generateImage(Story $story, string $prompt): string
     {
         if ($this->imageProvider() === 'fal') {
-            return $this->generateFalImage($prompt);
+            return $this->generateFalImage($story, $prompt);
         }
 
-        return $this->generateOpenAiImage($prompt);
+        return $this->generateOpenAiImage($story, $prompt);
     }
 
-    private function generateOpenAiImage(string $prompt): string
+    private function generateOpenAiImage(Story $story, string $prompt): string
     {
         $client = $this->client();
+        $model = $this->imageModel();
 
         try {
             $response = $client->images()->create([
-                'model' => $this->imageModel(),
+                'model' => $model,
                 'prompt' => $prompt,
-                'size' => '1024x1024',
+                'size' => '1792x1024',
                 'quality' => 'standard',
                 'n' => 1,
             ]);
 
+            $this->costLogger->logImage($story, 'openai', $model, $this->imageCostUsd());
+
             return $response->data[0]->url;
-        } catch (\OpenAI\Exceptions\ErrorException $e) {
+        } catch (ErrorException $e) {
             // Fallback to dall-e-2 if dall-e-3 is unavailable on this key.
-            if (str_contains($e->getMessage(), "does not exist") && $this->imageModel() !== 'dall-e-2') {
+            if (str_contains($e->getMessage(), 'does not exist') && $model !== 'dall-e-2') {
                 $response = $client->images()->create([
                     'model' => 'dall-e-2',
                     'prompt' => $prompt,
-                    'size' => '1024x1024',
+                    'size' => '1024x512',
                     'n' => 1,
                 ]);
+
+                $this->costLogger->logImage($story, 'openai', 'dall-e-2', $this->imageCostUsd());
 
                 return $response->data[0]->url;
             }
@@ -288,7 +322,7 @@ Source content:
         }
     }
 
-    private function generateFalImage(string $prompt): string
+    private function generateFalImage(Story $story, string $prompt): string
     {
         $key = $this->falApiKey();
         if (! $key) {
@@ -306,7 +340,10 @@ Source content:
             ->timeout(30)
             ->post($url, [
                 'prompt' => $prompt,
-                'image_size' => 'square_hd',
+                'image_size' => [
+                    'width' => 1280,
+                    'height' => 512,
+                ],
             ]);
 
         $submit->throw();
@@ -315,6 +352,8 @@ Source content:
         // Fast path: synchronous response already contains the image.
         $imageUrl = $this->extractFalImageUrl($data);
         if ($imageUrl) {
+            $this->costLogger->logImage($story, 'fal', $model, $this->falCostUsd(), ['queue' => false]);
+
             return $imageUrl;
         }
 
@@ -358,6 +397,8 @@ Source content:
 
                 $imageUrl = $this->extractFalImageUrl($resultData);
                 if ($imageUrl) {
+                    $this->costLogger->logImage($story, 'fal', $model, $this->falCostUsd(), ['queue' => true]);
+
                     return $imageUrl;
                 }
 
