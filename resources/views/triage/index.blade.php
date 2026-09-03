@@ -20,6 +20,12 @@
         <div class="mb-4 rounded-lg bg-red-50 p-3 text-sm text-red-800">{{ session('error') }}</div>
     @endif
 
+    <div class="mb-4 text-right">
+        <a href="{{ route('triage.archive') }}" class="text-sm font-medium text-gray-600 hover:text-gray-900">
+            View archive →
+        </a>
+    </div>
+
     @if ($stories->isEmpty())
         <div class="rounded-xl border-2 border-dashed border-gray-200 p-8 text-center">
             <p class="text-gray-500">No pending stories.</p>

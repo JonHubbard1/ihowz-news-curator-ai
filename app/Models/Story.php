@@ -26,12 +26,14 @@ class Story extends Model
         'suggested_tags',
         'wp_post_id',
         'published_at',
+        'archived_at',
     ];
 
     protected $casts = [
         'raw_metadata' => 'array',
         'suggested_tags' => 'array',
         'published_at' => 'datetime',
+        'archived_at' => 'datetime',
     ];
 
     public const STATUS_PENDING = 'pending';
