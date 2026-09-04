@@ -51,7 +51,15 @@ class EditorialController extends Controller
     {
         RegenerateStoryImage::dispatch($story->id);
 
-        return back()->with('success', 'Image regeneration queued. Refresh in a few moments to see the new image.');
+        return redirect()->route('editorial.show', ['story' => $story, 'generating' => 1]);
+    }
+
+    public function imageStatus(Story $story)
+    {
+        return response()->json([
+            'image_url' => $story->image_url,
+            'updated_at' => $story->updated_at->toIso8601String(),
+        ]);
     }
 
     public function publish(Story $story)

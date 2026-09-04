@@ -42,6 +42,7 @@ Route::middleware(['auth'])->group(function () {
     Route::put('/editorial/{story}', [EditorialController::class, 'update'])->name('editorial.update');
     Route::post('/editorial/{story}/ai-command', [EditorialController::class, 'aiCommand'])->name('editorial.ai-command');
     Route::post('/editorial/{story}/regenerate-image', [EditorialController::class, 'regenerateImage'])->name('editorial.regenerate-image');
+    Route::get('/editorial/{story}/image-status', [EditorialController::class, 'imageStatus'])->name('editorial.image-status');
     Route::post('/editorial/{story}/publish', [EditorialController::class, 'publish'])->name('editorial.publish');
 
     Route::get('/search-terms', [SearchTermController::class, 'index'])->name('search-terms.index');

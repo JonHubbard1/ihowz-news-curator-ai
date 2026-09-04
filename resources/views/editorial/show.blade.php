@@ -3,77 +3,122 @@
 @section('title', 'Review Draft')
 
 @section('content')
-    <div class="mb-4">
-        <a href="{{ route('editorial') }}" class="text-sm font-medium text-gray-500 hover:text-gray-900">← Back to Editorial</a>
+    <div x-data="imageGenerator({{ $story->id }}, {{ json_encode($story->image_url) }})" x-init="startPolling()" :class="{ 'pointer-events-none': showOverlay }">
+        <div class="mb-4">
+            <a href="{{ route('editorial') }}" class="text-sm font-medium text-gray-500 hover:text-gray-900">← Back to Editorial</a>
+        </div>
+
+        @if (session('success'))
+            <div class="mb-4 rounded-lg bg-green-50 p-3 text-sm text-green-800">{{ session('success') }}</div>
+        @endif
+        @if (session('error'))
+            <div class="mb-4 rounded-lg bg-red-50 p-3 text-sm text-red-800">{{ session('error') }}</div>
+        @endif
+
+        <div x-show="showOverlay" x-transition.opacity class="fixed inset-0 z-50 flex items-center justify-center bg-black/60" x-cloak>
+            <div class="rounded-2xl bg-white px-8 py-6 text-center shadow-2xl">
+                <div class="mx-auto mb-4 h-10 w-10 animate-spin rounded-full border-4 border-teal-200 border-t-teal-700"></div>
+                <p class="text-lg font-semibold text-gray-900">Generating Image</p>
+                <p class="mt-1 text-sm text-gray-500">This may take 10–60 seconds.</p>
+            </div>
+        </div>
+
+        <template x-if="imageUrl">
+            <img :src="imageUrl" alt="" class="mb-4 w-full rounded-xl object-cover">
+        </template>
+
+        <form method="POST" action="{{ route('editorial.update', $story) }}" class="space-y-4">
+            @csrf
+            @method('PUT')
+
+            <div>
+                <label class="mb-1 block text-sm font-medium text-gray-700">Headline</label>
+                <input name="headline" value="{{ old('headline', $story->headline) }}" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-base focus:border-teal-500 focus:outline-none focus:ring-2 focus:ring-teal-500/20">
+            </div>
+
+            <div>
+                <label class="mb-1 block text-sm font-medium text-gray-700">Article</label>
+                <textarea name="article_text" rows="12" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-base focus:border-teal-500 focus:outline-none focus:ring-2 focus:ring-teal-500/20">{{ old('article_text', $story->article_text) }}</textarea>
+            </div>
+
+            <div>
+                <label class="mb-1 block text-sm font-medium text-gray-700">Meta Description</label>
+                <input name="meta_description" value="{{ old('meta_description', $story->meta_description) }}" maxlength="320" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-teal-500 focus:outline-none">
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="mb-1 block text-sm font-medium text-gray-700">Category</label>
+                    <input name="suggested_category" value="{{ old('suggested_category', $story->suggested_category) }}" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm">
+                </div>
+                <div>
+                    <label class="mb-1 block text-sm font-medium text-gray-700">Tags (comma separated)</label>
+                    <input name="suggested_tags" value="{{ old('suggested_tags', implode(', ', $story->suggested_tags ?? [])) }}" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm">
+                </div>
+            </div>
+
+            <div class="flex gap-3">
+                <button type="submit" class="flex-1 rounded-lg bg-gray-900 px-4 py-3 text-sm font-semibold text-white active:bg-gray-800">Save changes</button>
+            </div>
+        </form>
+
+        <!-- AI Command Bar -->
+        <form method="POST" action="{{ route('editorial.ai-command', $story) }}" class="mt-4">
+            @csrf
+            <label class="mb-1 block text-sm font-medium text-gray-700">AI Command</label>
+            <div class="flex gap-2">
+                <input name="command" placeholder="e.g. Make the tone more professional" class="min-w-0 flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-teal-500 focus:outline-none">
+                <button type="submit" class="rounded-lg bg-purple-600 px-4 py-2 text-sm font-semibold text-white active:bg-purple-700">Run</button>
+            </div>
+        </form>
+
+        <form method="POST" action="{{ route('editorial.regenerate-image', $story) }}" class="mt-4" @submit.prevent="submitRegenerate">
+            @csrf
+            <button type="submit" class="w-full rounded-lg border border-gray-300 bg-white px-4 py-3 text-sm font-semibold text-gray-700 active:bg-gray-100">
+                Regenerate image
+            </button>
+        </form>
+
+        <form method="POST" action="{{ route('editorial.publish', $story) }}" class="mt-6">
+            @csrf
+            <button type="submit" class="w-full rounded-lg bg-green-600 px-4 py-4 text-base font-bold text-white shadow-lg active:bg-green-700">
+                Publish to iHowz
+            </button>
+        </form>
+
+        <script>
+            function imageGenerator(storyId, initialImageUrl) {
+                return {
+                    imageUrl: initialImageUrl || null,
+                    showOverlay: {{ request('generating') ? 'true' : 'false' }},
+                    checkUrl: '/editorial/' + storyId + '/image-status',
+
+                    startPolling() {
+                        if (!this.showOverlay) return;
+                        this.poll();
+                    },
+
+                    poll() {
+                        fetch(this.checkUrl)
+                            .then(r => r.json())
+                            .then(data => {
+                                if (data.image_url && data.image_url !== this.imageUrl) {
+                                    this.imageUrl = data.image_url;
+                                    this.showOverlay = false;
+                                } else {
+                                    setTimeout(() => this.poll(), 3000);
+                                }
+                            })
+                            .catch(() => setTimeout(() => this.poll(), 5000));
+                    },
+
+                    submitRegenerate(event) {
+                        this.showOverlay = true;
+                        this.poll();
+                        event.target.submit();
+                    }
+                }
+            }
+        </script>
     </div>
-
-    @if (session('success'))
-        <div class="mb-4 rounded-lg bg-green-50 p-3 text-sm text-green-800">{{ session('success') }}</div>
-    @endif
-    @if (session('error'))
-        <div class="mb-4 rounded-lg bg-red-50 p-3 text-sm text-red-800">{{ session('error') }}</div>
-    @endif
-
-    @if ($story->image_url)
-        <img src="{{ $story->image_url }}" alt="" class="mb-4 w-full rounded-xl object-cover">
-    @endif
-
-    <form method="POST" action="{{ route('editorial.update', $story) }}" class="space-y-4">
-        @csrf
-        @method('PUT')
-
-        <div>
-            <label class="mb-1 block text-sm font-medium text-gray-700">Headline</label>
-            <input name="headline" value="{{ old('headline', $story->headline) }}" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-base focus:border-teal-500 focus:outline-none focus:ring-2 focus:ring-teal-500/20">
-        </div>
-
-        <div>
-            <label class="mb-1 block text-sm font-medium text-gray-700">Article</label>
-            <textarea name="article_text" rows="12" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-base focus:border-teal-500 focus:outline-none focus:ring-2 focus:ring-teal-500/20">{{ old('article_text', $story->article_text) }}</textarea>
-        </div>
-
-        <div>
-            <label class="mb-1 block text-sm font-medium text-gray-700">Meta Description</label>
-            <input name="meta_description" value="{{ old('meta_description', $story->meta_description) }}" maxlength="320" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-teal-500 focus:outline-none">
-        </div>
-
-        <div class="grid grid-cols-2 gap-3">
-            <div>
-                <label class="mb-1 block text-sm font-medium text-gray-700">Category</label>
-                <input name="suggested_category" value="{{ old('suggested_category', $story->suggested_category) }}" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm">
-            </div>
-            <div>
-                <label class="mb-1 block text-sm font-medium text-gray-700">Tags (comma separated)</label>
-                <input name="suggested_tags" value="{{ old('suggested_tags', implode(', ', $story->suggested_tags ?? [])) }}" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm">
-            </div>
-        </div>
-
-        <div class="flex gap-3">
-            <button type="submit" class="flex-1 rounded-lg bg-gray-900 px-4 py-3 text-sm font-semibold text-white active:bg-gray-800">Save changes</button>
-        </div>
-    </form>
-
-    <!-- AI Command Bar -->
-    <form method="POST" action="{{ route('editorial.ai-command', $story) }}" class="mt-4">
-        @csrf
-        <label class="mb-1 block text-sm font-medium text-gray-700">AI Command</label>
-        <div class="flex gap-2">
-            <input name="command" placeholder="e.g. Make the tone more professional" class="min-w-0 flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-teal-500 focus:outline-none">
-            <button type="submit" class="rounded-lg bg-purple-600 px-4 py-2 text-sm font-semibold text-white active:bg-purple-700">Run</button>
-        </div>
-    </form>
-
-    <form method="POST" action="{{ route('editorial.regenerate-image', $story) }}" class="mt-4">
-        @csrf
-        <button type="submit" class="w-full rounded-lg border border-gray-300 bg-white px-4 py-3 text-sm font-semibold text-gray-700 active:bg-gray-100">
-            Regenerate image
-        </button>
-    </form>
-
-    <form method="POST" action="{{ route('editorial.publish', $story) }}" class="mt-6">
-        @csrf
-        <button type="submit" class="w-full rounded-lg bg-green-600 px-4 py-4 text-base font-bold text-white shadow-lg active:bg-green-700">
-            Publish to iHowz
-        </button>
-    </form>
 @endsection
