@@ -321,7 +321,6 @@ Return only the prompt text."],
                 'model' => $model,
                 'prompt' => $prompt,
                 'n' => 1,
-                'response_format' => 'url',
             ];
 
             // gpt-image-1 and DALL-E families have different accepted parameters.
