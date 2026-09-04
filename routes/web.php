@@ -31,9 +31,9 @@ Route::post('/setup', [UserController::class, 'setup'])->name('setup.store');
 
 Route::middleware(['auth'])->group(function () {
     Route::get('/triage', [TriageController::class, 'index'])->name('triage');
+    Route::match(['get', 'post'], '/triage/discover', [TriageController::class, 'discover'])->name('triage.discover');
     Route::post('/triage/{story}/use', [TriageController::class, 'useStory'])->name('triage.use');
     Route::post('/triage/{story}/scrap', [TriageController::class, 'scrapStory'])->name('triage.scrap');
-    Route::post('/triage/discover', [TriageController::class, 'discover'])->name('triage.discover');
     Route::get('/triage/archive', [TriageController::class, 'archive'])->name('triage.archive');
     Route::post('/triage/{story}/restore', [TriageController::class, 'restore'])->name('triage.restore');
 
