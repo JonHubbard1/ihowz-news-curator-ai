@@ -29,6 +29,13 @@ class RegenerateStoryImage implements ShouldQueue
 
     public function failed(Throwable $exception): void
     {
+        $story = Story::find($this->storyId);
+        if ($story) {
+            $story->update([
+                'image_url' => null,
+            ]);
+        }
+
         report($exception);
     }
 }

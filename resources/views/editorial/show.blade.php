@@ -16,10 +16,11 @@
         @endif
 
         <div x-show="showOverlay" x-transition.opacity class="fixed inset-0 z-50 flex items-center justify-center bg-black/60" x-cloak>
-            <div class="rounded-2xl bg-white px-8 py-6 text-center shadow-2xl">
-                <div class="mx-auto mb-4 h-10 w-10 animate-spin rounded-full border-4 border-teal-200 border-t-teal-700"></div>
-                <p class="text-lg font-semibold text-gray-900">Generating Image</p>
-                <p class="mt-1 text-sm text-gray-500">This may take 10–60 seconds.</p>
+            <div class="max-w-xs rounded-2xl bg-white px-8 py-6 text-center shadow-2xl">
+                <div x-show="!errorMessage" class="mx-auto mb-4 h-10 w-10 animate-spin rounded-full border-4 border-teal-200 border-t-teal-700"></div>
+                <p class="text-lg font-semibold text-gray-900" x-text="errorMessage || 'Generating Image'"></p>
+                <p x-show="!errorMessage" class="mt-1 text-sm text-gray-500">This may take 10–120 seconds.</p>
+                <button x-show="errorMessage" type="button" @click="showOverlay = false" class="mt-4 w-full rounded-lg bg-gray-900 px-4 py-2 text-sm font-semibold text-white">Close</button>
             </div>
         </div>
 
@@ -91,6 +92,8 @@
                 return {
                     imageUrl: initialImageUrl || null,
                     showOverlay: {{ request('generating') ? 'true' : 'false' }},
+                    errorMessage: null,
+                    attempts: 0,
                     checkUrl: '/editorial/' + storyId + '/image-status',
 
                     startPolling() {
@@ -99,12 +102,21 @@
                     },
 
                     poll() {
+                        this.attempts++;
+
+                        // Give up after ~3 minutes of polling and show an error.
+                        if (this.attempts > 60) {
+                            this.errorMessage = 'Image generation is taking too long. Please refresh the page later.';
+                            return;
+                        }
+
                         fetch(this.checkUrl)
                             .then(r => r.json())
                             .then(data => {
                                 if (data.image_url && data.image_url !== this.imageUrl) {
                                     this.imageUrl = data.image_url;
                                     this.showOverlay = false;
+                                    this.errorMessage = null;
                                 } else {
                                     setTimeout(() => this.poll(), 3000);
                                 }
@@ -114,6 +126,8 @@
 
                     submitRegenerate(event) {
                         this.showOverlay = true;
+                        this.errorMessage = null;
+                        this.attempts = 0;
                         this.poll();
                         event.target.submit();
                     }

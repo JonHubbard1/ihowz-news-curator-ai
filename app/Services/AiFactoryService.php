@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\AiSetting;
 use App\Models\Story;
 use App\Models\StoryEdit;
+use GuzzleHttp\Client;
 use Illuminate\Support\Facades\Http;
 use OpenAI;
 use OpenAI\Exceptions\ErrorException;
@@ -13,14 +14,17 @@ class AiFactoryService
 {
     public function __construct(private AiCostLogger $costLogger) {}
 
-    private function client(): OpenAI\Client
+    private function client(int $timeout = 60): OpenAI\Client
     {
         $settings = AiSetting::current();
         if (! $settings->openai_api_key) {
             throw new \RuntimeException('OpenAI API key is not configured.');
         }
 
-        return OpenAI::client($settings->openai_api_key);
+        return OpenAI::factory()
+            ->withApiKey($settings->openai_api_key)
+            ->withHttpClient(new Client(['timeout' => $timeout]))
+            ->make();
     }
 
     private function llmModel(): string
@@ -307,8 +311,10 @@ Return only the prompt text."],
 
     private function generateOpenAiImage(Story $story, string $prompt): string
     {
-        $client = $this->client();
         $model = $this->imageModel();
+
+        // gpt-image-1 can take 60-120 seconds; DALL-E is usually much faster.
+        $client = $this->client($model === 'gpt-image-1' ? 180 : 60);
 
         try {
             $payload = [
