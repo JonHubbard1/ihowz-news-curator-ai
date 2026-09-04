@@ -311,19 +311,28 @@ Return only the prompt text."],
         $model = $this->imageModel();
 
         try {
-            $response = $client->images()->create([
+            $payload = [
                 'model' => $model,
                 'prompt' => $prompt,
-                'size' => '1792x1024',
-                'quality' => 'standard',
                 'n' => 1,
-            ]);
+            ];
+
+            // gpt-image-1 and DALL-E families have different accepted parameters.
+            if ($model === 'gpt-image-1') {
+                $payload['quality'] = 'medium';
+                $payload['size'] = '1536x1024';
+            } else {
+                $payload['quality'] = 'standard';
+                $payload['size'] = '1792x1024';
+            }
+
+            $response = $client->images()->create($payload);
 
             $this->costLogger->logImage($story, 'openai', $model, $this->imageCostUsd());
 
             return $response->data[0]->url;
         } catch (ErrorException $e) {
-            // Fallback to dall-e-2 if dall-e-3 is unavailable on this key.
+            // Fallback to dall-e-2 if the chosen model is unavailable on this key.
             if (str_contains($e->getMessage(), 'does not exist') && $model !== 'dall-e-2') {
                 $response = $client->images()->create([
                     'model' => 'dall-e-2',
