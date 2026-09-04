@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Jobs\PublishToWordPress;
+use App\Jobs\RegenerateStoryImage;
 use App\Models\Story;
 use App\Services\AiFactoryService;
 use Illuminate\Http\Request;
@@ -46,11 +47,11 @@ class EditorialController extends Controller
         return back()->with('success', 'AI edit applied.');
     }
 
-    public function regenerateImage(Story $story, AiFactoryService $ai)
+    public function regenerateImage(Story $story)
     {
-        $ai->regenerateImage($story);
+        RegenerateStoryImage::dispatch($story->id);
 
-        return back()->with('success', 'Image regenerated.');
+        return back()->with('success', 'Image regeneration queued. Refresh in a few moments to see the new image.');
     }
 
     public function publish(Story $story)
