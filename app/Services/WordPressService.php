@@ -241,7 +241,9 @@ class WordPressService
     }
 
     /**
-     * Crop/resample any source image to a 1280 x 512 banner from the centre.
+     * Crop/resample source image to a landscape banner only when the aspect ratio
+     * is not already suitable. We preserve wide/landscape images (e.g. OpenAI
+     * 1536x1024, 1.5:1) and only crop photos that are taller than a 16:9 banner.
      */
     private function cropToBanner(string $imageBytes): string
     {
@@ -255,24 +257,24 @@ class WordPressService
 
         $targetWidth = 1280;
         $targetHeight = 512;
+        $maxAspect = 16 / 9;
 
-        // If already the right size, return the original bytes unchanged.
-        if ($sourceWidth === $targetWidth && $sourceHeight === $targetHeight) {
+        $sourceAspect = $sourceWidth / $sourceHeight;
+
+        // Already a wide landscape image or smaller than target width: leave it alone.
+        if ($sourceAspect >= $maxAspect || $sourceWidth < $targetWidth) {
             imagedestroy($source);
 
             return $imageBytes;
         }
 
-        // Fit the source into the target aspect ratio (2.5:1) and crop from the centre.
+        // Source is taller/portrait: crop/resample to a 16:9 landscape banner.
         $targetAspect = $targetWidth / $targetHeight;
-        $sourceAspect = $sourceWidth / $sourceHeight;
 
         if ($sourceAspect > $targetAspect) {
-            // Source is wider than target: fit height, crop width.
             $cropHeight = $sourceHeight;
             $cropWidth = (int) round($sourceHeight * $targetAspect);
         } else {
-            // Source is taller than target (or same aspect): fit width, crop height.
             $cropWidth = $sourceWidth;
             $cropHeight = (int) round($sourceWidth / $targetAspect);
         }
