@@ -335,10 +335,11 @@ Return only the prompt text."],
             $response = $client->images()->create($payload);
 
             $first = $response->data[0];
+            $raw = json_decode(json_encode($first), true);
 
             $this->costLogger->logImage($story, 'openai', $model, $this->imageCostUsd(), [
-                'has_url' => ! empty($first->url),
-                'has_b64' => ! empty($first->b64Json),
+                'keys' => array_keys($raw),
+                'raw_keys' => $raw,
             ]);
 
             if (! empty($first->url)) {
@@ -349,7 +350,11 @@ Return only the prompt text."],
                 return $this->storeBase64Image($story, $first->b64Json);
             }
 
-            throw new \RuntimeException('OpenAI image response did not contain a URL or base64 data.');
+            if (isset($raw['b64_json']) && $raw['b64_json'] !== '') {
+                return $this->storeBase64Image($story, $raw['b64_json']);
+            }
+
+            throw new \RuntimeException('OpenAI image response did not contain a URL or base64 data. Keys: '.implode(', ', array_keys($raw)));
         } catch (ErrorException $e) {
             // Fallback to dall-e-2 if the chosen model is unavailable on this key.
             if (str_contains($e->getMessage(), 'does not exist') && $model !== 'dall-e-2') {
