@@ -20,7 +20,16 @@ class EditorialController extends Controller
 
     public function show(Story $story)
     {
-        return view('editorial.show', compact('story'));
+        $currentLength = $story->edits()
+            ->where('ai_command', 'like', 'length:%')
+            ->orderByDesc('created_at')
+            ->orderByDesc('id')
+            ->value('ai_command');
+
+        $currentLength = $currentLength ? explode(':', $currentLength)[1] : 'medium';
+        $currentLength = explode(' ', $currentLength)[0];
+
+        return view('editorial.show', compact('story', 'currentLength'));
     }
 
     public function update(Request $request, Story $story)
