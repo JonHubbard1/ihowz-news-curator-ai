@@ -104,8 +104,8 @@
                     poll() {
                         this.attempts++;
 
-                        // Give up after ~3 minutes of polling and show an error.
-                        if (this.attempts > 60) {
+                        // Give up after ~5 minutes of polling and show an error.
+                        if (this.attempts > 100) {
                             this.errorMessage = 'Image generation is taking too long. Please refresh the page later.';
                             return;
                         }
