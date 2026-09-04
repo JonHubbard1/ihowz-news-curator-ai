@@ -7,6 +7,13 @@
         <a href="{{ route('editorial') }}" class="text-sm font-medium text-gray-500 hover:text-gray-900">← Back to Editorial</a>
     </div>
 
+    @if (session('success'))
+        <div class="mb-4 rounded-lg bg-green-50 p-3 text-sm text-green-800">{{ session('success') }}</div>
+    @endif
+    @if (session('error'))
+        <div class="mb-4 rounded-lg bg-red-50 p-3 text-sm text-red-800">{{ session('error') }}</div>
+    @endif
+
     @if ($story->image_url)
         <img src="{{ $story->image_url }}" alt="" class="mb-4 w-full rounded-xl object-cover">
     @endif
