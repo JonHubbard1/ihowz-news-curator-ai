@@ -7,6 +7,7 @@ use App\Models\Story;
 use App\Models\StoryEdit;
 use GuzzleHttp\Client;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Storage;
 use OpenAI;
 use OpenAI\Exceptions\ErrorException;
 
@@ -377,13 +378,12 @@ Return only the prompt text."],
         }
 
         $filename = 'generated/'.$story->id.'-'.time().'.png';
-        $path = 'public/'.$filename;
 
-        if (! \Storage::disk('local')->put($path, $bytes)) {
+        if (! Storage::disk('public')->put($filename, $bytes)) {
             throw new \RuntimeException('Failed to save generated image to disk.');
         }
 
-        return asset('storage/'.str_replace('public/', '', $filename));
+        return asset('storage/'.$filename);
     }
 
     private function generateFalImage(Story $story, string $prompt): string
