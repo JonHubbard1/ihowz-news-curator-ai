@@ -99,6 +99,14 @@ class AiFactoryService
                 'image_url' => $imageUrl,
                 'status' => Story::STATUS_DRAFT,
             ]);
+
+            StoryEdit::create([
+                'story_id' => $story->id,
+                'field' => 'article_text',
+                'previous_value' => '',
+                'new_value' => $article,
+                'ai_command' => 'length:medium (initial)',
+            ]);
         } catch (\Throwable $e) {
             $story->update(['status' => Story::STATUS_USED]);
             throw $e;

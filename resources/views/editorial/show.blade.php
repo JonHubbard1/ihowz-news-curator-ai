@@ -70,17 +70,17 @@
                 <form method="POST" action="{{ route('editorial.set-length', $story) }}" class="flex-1">
                     @csrf
                     <input type="hidden" name="length" value="short">
-                    <button type="submit" class="w-full rounded-lg border px-3 py-2 text-sm font-semibold {{ $currentLength === 'short' ? 'border-teal-600 bg-teal-600 text-white' : 'border-gray-300 bg-white text-gray-700 active:bg-gray-100' }}">Short</button>
+                    <button type="submit" class="w-full rounded-lg border px-3 py-2 text-sm font-semibold {{ $currentLength === 'short' ? 'border-2 border-teal-600 bg-teal-50 text-teal-800 shadow-sm' : 'border-gray-300 bg-white text-gray-700 active:bg-gray-100' }}">Short</button>
                 </form>
                 <form method="POST" action="{{ route('editorial.set-length', $story) }}" class="flex-1">
                     @csrf
                     <input type="hidden" name="length" value="medium">
-                    <button type="submit" class="w-full rounded-lg border px-3 py-2 text-sm font-semibold {{ $currentLength === 'medium' ? 'border-teal-600 bg-teal-600 text-white' : 'border-gray-300 bg-white text-gray-700 active:bg-gray-100' }}">Medium</button>
+                    <button type="submit" class="w-full rounded-lg border px-3 py-2 text-sm font-semibold {{ $currentLength === 'medium' ? 'border-2 border-teal-600 bg-teal-50 text-teal-800 shadow-sm' : 'border-gray-300 bg-white text-gray-700 active:bg-gray-100' }}">Medium</button>
                 </form>
                 <form method="POST" action="{{ route('editorial.set-length', $story) }}" class="flex-1">
                     @csrf
                     <input type="hidden" name="length" value="long">
-                    <button type="submit" class="w-full rounded-lg border px-3 py-2 text-sm font-semibold {{ $currentLength === 'long' ? 'border-teal-600 bg-teal-600 text-white' : 'border-gray-300 bg-white text-gray-700 active:bg-gray-100' }}">Long</button>
+                    <button type="submit" class="w-full rounded-lg border px-3 py-2 text-sm font-semibold {{ $currentLength === 'long' ? 'border-2 border-teal-600 bg-teal-50 text-teal-800 shadow-sm' : 'border-gray-300 bg-white text-gray-700 active:bg-gray-100' }}">Long</button>
                 </form>
             </div>
         </div>
