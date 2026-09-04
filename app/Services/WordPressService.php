@@ -157,21 +157,110 @@ class WordPressService
 
     private function ensureCategory(string $base, string $name): int
     {
+        $normalised = strtolower(trim($name));
+
+        // Fetch all existing categories so we can fuzzy-match against them.
         $categories = $this->request('GET', "{$base}/wp-json/wp/v2/categories", [
-            'query' => ['search' => $name],
+            'query' => ['per_page' => 100],
+        ]);
+
+        $bestId = null;
+        $bestSimilarity = 0;
+        foreach ($categories as $cat) {
+            $catName = strtolower(trim($cat['name']));
+            if ($catName === $normalised) {
+                return $cat['id'];
+            }
+
+            similar_text($catName, $normalised, $similarity);
+            if ($similarity >= 70 && $similarity > $bestSimilarity) {
+                $bestSimilarity = $similarity;
+                $bestId = $cat['id'];
+            }
+        }
+
+        if ($bestId) {
+            return $bestId;
+        }
+
+        // Generalise overly specific names before creating a new category.
+        $genericName = $this->generaliseCategoryName($name);
+        $normalisedGeneric = strtolower(trim($genericName));
+        foreach ($categories as $cat) {
+            if (strtolower(trim($cat['name'])) === $normalisedGeneric) {
+                return $cat['id'];
+            }
+        }
+
+        // Ensure the parent "News" category exists.
+        $newsParentId = $this->ensureNewsParentCategory($base);
+
+        $created = $this->request('POST', "{$base}/wp-json/wp/v2/categories", [
+            'json' => [
+                'name' => $genericName,
+                'parent' => $newsParentId,
+            ],
+        ]);
+
+        return $created['id'];
+    }
+
+    private function ensureNewsParentCategory(string $base): int
+    {
+        $categories = $this->request('GET', "{$base}/wp-json/wp/v2/categories", [
+            'query' => ['search' => 'News'],
         ]);
 
         foreach ($categories as $cat) {
-            if (strtolower($cat['name']) === strtolower($name)) {
+            if (strtolower(trim($cat['name'])) === 'news') {
                 return $cat['id'];
             }
         }
 
         $created = $this->request('POST', "{$base}/wp-json/wp/v2/categories", [
-            'json' => ['name' => $name],
+            'json' => ['name' => 'News'],
         ]);
 
         return $created['id'];
+    }
+
+    private function generaliseCategoryName(string $name): string
+    {
+        $name = trim($name);
+        $lower = strtolower($name);
+
+        // Strip common noisy suffixes/prefixes.
+        $name = preg_replace('/\s+(news|update|report|latest|insights?|analysis)$/i', '', $name);
+        $name = preg_replace('/^(latest|breaking|new)\s+/i', '', $name);
+
+        $map = [
+            'landlord' => 'Landlords',
+            'letting' => 'Letting Agents',
+            'tenant' => 'Tenants',
+            'rent' => 'Rent & Renting',
+            'rental' => 'Rent & Renting',
+            'housing' => 'Housing Market',
+            'property' => 'Property Market',
+            'regulation' => 'Regulations',
+            'regulatory' => 'Regulations',
+            'law' => 'Regulations',
+            'legal' => 'Regulations',
+            'eviction' => 'Evictions',
+            'mortgage' => 'Finance',
+            'tax' => 'Finance',
+            'energy' => 'Property Standards',
+            'council' => 'Local Government',
+            'building' => 'Property Standards',
+            'safety' => 'Property Standards',
+        ];
+
+        foreach ($map as $needle => $replacement) {
+            if (str_contains($lower, $needle)) {
+                return $replacement;
+            }
+        }
+
+        return $name !== '' ? $name : 'News';
     }
 
     private function ensureTags(string $base, array $tags): array
