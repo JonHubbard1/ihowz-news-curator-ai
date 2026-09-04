@@ -171,14 +171,14 @@ class AiFactoryService
             'model' => $model,
             'temperature' => 0.6,
             'messages' => [
-                ['role' => 'system', 'content' => 'You are an expert UK property-industry editor.'],
+                ['role' => 'system', 'content' => 'You are an expert UK property-industry editor. Output the revised article as plain text only. Do NOT use Markdown headings, bullets, or any formatting. Do NOT include the headline inside the article body. Return only the article paragraphs, separated by blank lines.'],
                 ['role' => 'user', 'content' => 'Given this article for '.config('news.brand_name').":\n\n{$story->article_text}\n\nInstruction: {$command}\n\nReturn the revised full article text only, preserving the same tone and brand voice ({$this->brandVoice()})."],
             ],
         ]);
 
         $this->costLogger->logEdit($story, $model, $response->toArray());
 
-        $revised = trim($response->choices[0]->message->content);
+        $revised = $this->extractArticleBody($response->choices[0]->message->content);
 
         StoryEdit::create([
             'story_id' => $story->id,
@@ -219,6 +219,21 @@ class AiFactoryService
         }
 
         return $text;
+    }
+
+    private function extractArticleBody(string $text): string
+    {
+        $text = trim($text);
+
+        // Convert any Markdown the LLM returned into clean HTML paragraphs.
+        $html = str($text)
+            ->markdown()
+            ->toString();
+
+        // Tidy up: strip outer wrapper tags if the whole thing is wrapped.
+        $html = preg_replace('/^<p>(.*)<\/p>$/s', '$1', trim($html));
+
+        return $html;
     }
 
     private function extractArticleText(string $html): string
@@ -275,6 +290,7 @@ CRITICAL RULES:
 - Structure: compelling headline, 1-paragraph intro, 3-5 concise body paragraphs, 1-paragraph practical takeaway.
 - Suggest a WordPress category (max 30 chars) and 3-5 tags.
 - Write a meta description (max 160 chars) that encourages clicks.
+- The 'headline' field must contain ONLY the headline text. The 'article' field must contain ONLY the article body paragraphs, with NO headline, NO markdown formatting, and NO HTML. Plain text only, separated by blank lines.
 
 Return ONLY valid JSON in this exact format:
 {
