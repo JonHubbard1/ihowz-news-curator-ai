@@ -47,6 +47,14 @@ class EditorialController extends Controller
         return back()->with('success', 'AI edit applied.');
     }
 
+    public function setLength(Request $request, Story $story, AiFactoryService $ai)
+    {
+        $length = $request->validate(['length' => 'required|in:short,medium,long'])['length'];
+        $ai->resizeArticle($story, $length);
+
+        return back()->with('success', 'Article resized to '.$length.'.');
+    }
+
     public function regenerateImage(Story $story)
     {
         RegenerateStoryImage::dispatch($story->id);

@@ -18,7 +18,9 @@ class UserSettingsController extends Controller
     {
         $data = $request->validate([
             'brand_voice' => 'nullable|string',
-            'target_article_length' => 'required|integer|min:200|max:3000',
+            'article_length_short' => 'required|integer|min:100|max:5000',
+            'article_length_medium' => 'required|integer|min:100|max:5000',
+            'article_length_long' => 'required|integer|min:100|max:5000',
         ]);
 
         AiSetting::current()->update($data);

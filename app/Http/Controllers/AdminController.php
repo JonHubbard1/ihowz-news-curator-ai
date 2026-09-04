@@ -81,7 +81,9 @@ class AdminController extends Controller
             'image_cost_per_image' => 'nullable|numeric|min:0',
             'fal_cost_per_image' => 'nullable|numeric|min:0',
             'cost_markup_multiplier' => 'nullable|numeric|min:0',
-            'target_article_length' => 'required|integer|min:200|max:3000',
+            'article_length_short' => 'required|integer|min:100|max:5000',
+            'article_length_medium' => 'required|integer|min:100|max:5000',
+            'article_length_long' => 'required|integer|min:100|max:5000',
         ]);
 
         $data = array_filter($data, fn ($value) => $value !== null);

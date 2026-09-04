@@ -63,6 +63,28 @@
             </div>
         </form>
 
+        <!-- Length Presets -->
+        <div class="mt-4">
+            <p class="mb-2 text-sm font-medium text-gray-700">Article length</p>
+            <div class="grid grid-cols-3 gap-3">
+                <form method="POST" action="{{ route('editorial.set-length', $story) }}" class="contents">
+                    @csrf
+                    <input type="hidden" name="length" value="short">
+                    <button type="submit" class="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-semibold text-gray-700 active:bg-gray-100">Short</button>
+                </form>
+                <form method="POST" action="{{ route('editorial.set-length', $story) }}" class="contents">
+                    @csrf
+                    <input type="hidden" name="length" value="medium">
+                    <button type="submit" class="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-semibold text-gray-700 active:bg-gray-100">Medium</button>
+                </form>
+                <form method="POST" action="{{ route('editorial.set-length', $story) }}" class="contents">
+                    @csrf
+                    <input type="hidden" name="length" value="long">
+                    <button type="submit" class="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-semibold text-gray-700 active:bg-gray-100">Long</button>
+                </form>
+            </div>
+        </div>
+
         <!-- AI Command Bar -->
         <form method="POST" action="{{ route('editorial.ai-command', $story) }}" class="mt-4">
             @csrf

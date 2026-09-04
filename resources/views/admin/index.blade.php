@@ -126,9 +126,20 @@
                     <input type="number" step="0.01" name="cost_markup_multiplier" value="{{ $ai->cost_markup_multiplier }}" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm">
                     <p class="mt-1 text-xs text-gray-500">Costs displayed on the dashboard and logged per operation are multiplied by this value. Set to 1.0 to charge at cost.</p>
                 </div>
+            </div>
+
+            <div class="grid grid-cols-3 gap-3">
                 <div>
-                    <label class="mb-1 block text-sm font-medium text-gray-700">Target article length (words)</label>
-                    <input type="number" name="target_article_length" value="{{ $ai->target_article_length }}" min="200" max="3000" required class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm">
+                    <label class="mb-1 block text-sm font-medium text-gray-700">Short length</label>
+                    <input type="number" name="article_length_short" value="{{ $ai->article_length_short }}" min="100" max="5000" required class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm">
+                </div>
+                <div>
+                    <label class="mb-1 block text-sm font-medium text-gray-700">Medium length</label>
+                    <input type="number" name="article_length_medium" value="{{ $ai->article_length_medium }}" min="100" max="5000" required class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm">
+                </div>
+                <div>
+                    <label class="mb-1 block text-sm font-medium text-gray-700">Long length</label>
+                    <input type="number" name="article_length_long" value="{{ $ai->article_length_long }}" min="100" max="5000" required class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm">
                 </div>
             </div>
 

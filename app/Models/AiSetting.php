@@ -22,7 +22,9 @@ class AiSetting extends Model
         'image_cost_per_image',
         'fal_cost_per_image',
         'cost_markup_multiplier',
-        'target_article_length',
+        'article_length_short',
+        'article_length_medium',
+        'article_length_long',
     ];
 
     public static function current(): self
@@ -38,7 +40,9 @@ class AiSetting extends Model
             'image_cost_per_image' => 0.040000,
             'fal_cost_per_image' => 0.030000,
             'cost_markup_multiplier' => 5.00,
-            'target_article_length' => 600,
+            'article_length_short' => 300,
+            'article_length_medium' => 600,
+            'article_length_long' => 1200,
         ]);
     }
 }

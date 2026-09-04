@@ -144,6 +144,47 @@ class AiFactoryService
         return $url;
     }
 
+    public function resizeArticle(Story $story, string $length): string
+    {
+        $settings = AiSetting::current();
+
+        $wordCount = match ($length) {
+            'short' => (int) $settings->article_length_short,
+            'long' => (int) $settings->article_length_long,
+            default => (int) $settings->article_length_medium,
+        };
+
+        $client = $this->client();
+        $model = $this->llmModel();
+
+        $command = "Rewrite this article to be approximately {$wordCount} words. Keep the same topic, facts, and tone. Trim or expand detail as needed to hit the target length while preserving the key information for landlords.";
+
+        $response = $client->chat()->create([
+            'model' => $model,
+            'temperature' => 0.6,
+            'messages' => [
+                ['role' => 'system', 'content' => 'You are an expert UK property-industry editor.'],
+                ['role' => 'user', 'content' => 'Given this article for '.config('news.brand_name').":\n\n{$story->article_text}\n\nInstruction: {$command}\n\nReturn the revised full article text only, preserving the same tone and brand voice ({$this->brandVoice()})."],
+            ],
+        ]);
+
+        $this->costLogger->logEdit($story, $model, $response->toArray());
+
+        $revised = trim($response->choices[0]->message->content);
+
+        StoryEdit::create([
+            'story_id' => $story->id,
+            'field' => 'article_text',
+            'previous_value' => $story->article_text,
+            'new_value' => $revised,
+            'ai_command' => "length:{$length} ({$wordCount} words)",
+        ]);
+
+        $story->update(['article_text' => $revised]);
+
+        return $revised;
+    }
+
     private function researchUrl(string $url): string
     {
         // Follow redirects to reach the real article, bypassing Google consent pages.
@@ -208,7 +249,8 @@ class AiFactoryService
             ? substr($rawText, 0, 6000)
             : "Source headline: {$story->headline}\nSource snippet: ".($story->snippet ?: 'No snippet available.');
 
-        $targetLength = (int) AiSetting::current()->target_article_length;
+        $settings = AiSetting::current();
+        $targetLength = (int) $settings->article_length_medium;
 
         $prompt = 'You are the senior editor for '.config('news.brand_name').", a trusted voice in the UK Private Rental Sector.
 
