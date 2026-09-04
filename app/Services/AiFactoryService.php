@@ -321,6 +321,7 @@ Return only the prompt text."],
                 'model' => $model,
                 'prompt' => $prompt,
                 'n' => 1,
+                'response_format' => 'url',
             ];
 
             // gpt-image-1 and DALL-E families have different accepted parameters.
@@ -334,9 +335,22 @@ Return only the prompt text."],
 
             $response = $client->images()->create($payload);
 
-            $this->costLogger->logImage($story, 'openai', $model, $this->imageCostUsd());
+            $first = $response->data[0];
 
-            return $response->data[0]->url;
+            $this->costLogger->logImage($story, 'openai', $model, $this->imageCostUsd(), [
+                'has_url' => ! empty($first->url),
+                'has_b64' => ! empty($first->b64Json),
+            ]);
+
+            if (! empty($first->url)) {
+                return $first->url;
+            }
+
+            if (! empty($first->b64Json)) {
+                return $this->storeBase64Image($story, $first->b64Json);
+            }
+
+            throw new \RuntimeException('OpenAI image response did not contain a URL or base64 data.');
         } catch (ErrorException $e) {
             // Fallback to dall-e-2 if the chosen model is unavailable on this key.
             if (str_contains($e->getMessage(), 'does not exist') && $model !== 'dall-e-2') {
@@ -354,6 +368,23 @@ Return only the prompt text."],
 
             throw $e;
         }
+    }
+
+    private function storeBase64Image(Story $story, string $base64): string
+    {
+        $bytes = base64_decode($base64, true);
+        if ($bytes === false) {
+            throw new \RuntimeException('Failed to decode base64 image from OpenAI.');
+        }
+
+        $filename = 'generated/'.$story->id.'-'.time().'.png';
+        $path = 'public/'.$filename;
+
+        if (! \Storage::disk('local')->put($path, $bytes)) {
+            throw new \RuntimeException('Failed to save generated image to disk.');
+        }
+
+        return asset('storage/'.str_replace('public/', '', $filename));
     }
 
     private function generateFalImage(Story $story, string $prompt): string
