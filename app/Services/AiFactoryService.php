@@ -339,15 +339,10 @@ Return only the prompt text."],
 
             $this->costLogger->logImage($story, 'openai', $model, $this->imageCostUsd(), [
                 'keys' => array_keys($raw),
-                'raw_keys' => $raw,
             ]);
 
             if (! empty($first->url)) {
                 return $first->url;
-            }
-
-            if (! empty($first->b64Json)) {
-                return $this->storeBase64Image($story, $first->b64Json);
             }
 
             if (isset($raw['b64_json']) && $raw['b64_json'] !== '') {
