@@ -45,7 +45,7 @@ class AiFactoryService
 
     private function falModel(): string
     {
-        return AiSetting::current()->fal_model ?: 'fal-ai/flux/dev';
+        return AiSetting::current()->fal_model ?: 'fal-ai/flux-pro/v1.1-ultra';
     }
 
     private function brandVoice(): string
@@ -263,12 +263,31 @@ Source content:
     {
         $client = $this->client();
         $model = $this->llmModel();
+
+        $brandName = config('news.brand_name');
+        $articleExcerpt = substr($article, 0, 900);
+
         $response = $client->chat()->create([
             'model' => $model,
             'temperature' => 0.7,
             'messages' => [
-                ['role' => 'system', 'content' => 'You write photorealistic image generation prompts for AI image models.'],
-                ['role' => 'user', 'content' => "Create a concise image generation prompt for an article titled '{$headline}'. The image should look like a professional editorial photo related to UK property, landlords, or residential lettings. The composition must work as a 1280px by 512px landscape banner: the image may be cropped at the edges, but the main subject/focal point must always be placed at the centre of the frame. No text, logos, or captions in the image. Article excerpt: ".substr($article, 0, 600)],
+                ['role' => 'system', 'content' => 'You are an expert prompt engineer for AI image generators used by a UK property news website. You write detailed, literal prompts for photorealistic editorial photography.'],
+                ['role' => 'user', 'content' => "We need a single, high-quality landscape banner image for a news article on {$brandName}.
+
+Headline: '{$headline}'
+Article excerpt: {$articleExcerpt}
+
+Write a concise but specific image-generation prompt (60–120 words) that will produce a photorealistic editorial photograph suitable for a UK property-industry news story. The scene should clearly relate to the article topic and feel like stock photography from a reputable news or property website.
+
+Requirements:
+- Realistic photography style, natural lighting, no illustrations, no cartoons, no AI-looking artefacts.
+- Subject must be centred horizontally and vertically so it survives a centre-crop to 1280x512 pixels.
+- Prefer wide, landscape-friendly scenes: exteriors of houses/flats, streets, letting-agent office interiors, hands signing documents, keys on a table, etc.
+- Avoid busy crowds, small text, or fine detail that will be lost in a banner crop.
+- No text, logos, watermarks, captions, or words in the image.
+- Use simple, literal language that the image model will follow accurately.
+
+Return only the prompt text."],
             ],
         ]);
 
@@ -340,10 +359,9 @@ Source content:
             ->timeout(30)
             ->post($url, [
                 'prompt' => $prompt,
-                'image_size' => [
-                    'width' => 1280,
-                    'height' => 512,
-                ],
+                'image_size' => 'landscape_16_9',
+                'aspect_ratio' => '16:9',
+                'num_images' => 1,
             ]);
 
         $submit->throw();

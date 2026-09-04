@@ -66,9 +66,12 @@
                 <div>
                     <label class="mb-1 block text-sm font-medium text-gray-700">LLM Model</label>
                     <select name="llm_model" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm">
+                        <option value="gpt-4.1" @selected($ai->llm_model === 'gpt-4.1')>GPT-4.1</option>
+                        <option value="gpt-4.1-mini" @selected($ai->llm_model === 'gpt-4.1-mini')>GPT-4.1 Mini</option>
+                        <option value="gpt-4.1-nano" @selected($ai->llm_model === 'gpt-4.1-nano')>GPT-4.1 Nano</option>
+                        <option value="gpt-5" @selected($ai->llm_model === 'gpt-5')>GPT-5</option>
                         <option value="gpt-4o" @selected($ai->llm_model === 'gpt-4o')>GPT-4o</option>
-                        <option value="gpt-4o-mini" @selected($ai->llm_model === 'gpt-4o-mini')>GPT-4o-mini</option>
-                        <option value="gpt-3.5-turbo" @selected($ai->llm_model === 'gpt-3.5-turbo')>GPT-3.5 Turbo</option>
+                        <option value="gpt-4o-mini" @selected($ai->llm_model === 'gpt-4o-mini')>GPT-4o Mini</option>
                     </select>
                 </div>
                 <div>
@@ -84,13 +87,14 @@
                 <div>
                     <label class="mb-1 block text-sm font-medium text-gray-700">OpenAI Image Model</label>
                     <select name="image_model" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm">
+                        <option value="gpt-image-1" @selected($ai->image_model === 'gpt-image-1')>GPT Image 1</option>
                         <option value="dall-e-3" @selected($ai->image_model === 'dall-e-3')>DALL-E 3</option>
                         <option value="dall-e-2" @selected($ai->image_model === 'dall-e-2')>DALL-E 2</option>
                     </select>
                 </div>
                 <div>
                     <label class="mb-1 block text-sm font-medium text-gray-700">FAL Model</label>
-                    <input name="fal_model" value="{{ $ai->fal_model ?? 'fal-ai/flux/dev' }}" placeholder="fal-ai/flux/dev" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm">
+                    <input name="fal_model" value="{{ $ai->fal_model ?? 'fal-ai/flux-pro/v1.1-ultra' }}" placeholder="fal-ai/flux-pro/v1.1-ultra" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm">
                 </div>
             </div>
 
