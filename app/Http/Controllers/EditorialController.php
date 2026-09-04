@@ -51,7 +51,9 @@ class EditorialController extends Controller
     {
         RegenerateStoryImage::dispatch($story->id);
 
-        return redirect()->route('editorial.show', ['story' => $story, 'generating' => 1]);
+        return redirect()
+            ->route('editorial.show', ['story' => $story, 'generating' => 1])
+            ->with('previousImageUrl', $story->image_url);
     }
 
     public function imageStatus(Story $story)

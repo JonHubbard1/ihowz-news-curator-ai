@@ -3,7 +3,7 @@
 @section('title', 'Review Draft')
 
 @section('content')
-    <div x-data="imageGenerator({{ $story->id }}, {{ json_encode($story->image_url) }})" x-init="startPolling()" :class="{ 'pointer-events-none': showOverlay }">
+    <div x-data="imageGenerator({{ $story->id }}, {{ json_encode(session('previousImageUrl', $story->image_url)) }})" x-init="startPolling()" :class="{ 'pointer-events-none': showOverlay }">
         <div class="mb-4">
             <a href="{{ route('editorial') }}" class="text-sm font-medium text-gray-500 hover:text-gray-900">← Back to Editorial</a>
         </div>
