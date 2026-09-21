@@ -45,6 +45,7 @@ class UserController extends Controller
             'email' => 'required|email|max:255|unique:users,email',
             'password' => 'required|string|min:8|confirmed',
             'is_admin' => 'nullable|boolean',
+            'wp_application_password' => 'nullable|string|max:255',
         ]);
 
         User::create([
@@ -52,6 +53,7 @@ class UserController extends Controller
             'email' => $data['email'],
             'password' => Hash::make($data['password']),
             'is_admin' => $request->boolean('is_admin'),
+            'wp_application_password' => $data['wp_application_password'] ?? null,
         ]);
 
         return back()->with('success', 'User added.');
@@ -64,6 +66,7 @@ class UserController extends Controller
             'email' => 'required|email|max:255|unique:users,email,'.$user->id,
             'password' => 'nullable|string|min:8|confirmed',
             'is_admin' => 'nullable|boolean',
+            'wp_application_password' => 'nullable|string|max:255',
         ]);
 
         $update = [
@@ -74,6 +77,10 @@ class UserController extends Controller
 
         if (! empty($data['password'])) {
             $update['password'] = Hash::make($data['password']);
+        }
+
+        if (! empty($data['wp_application_password'])) {
+            $update['wp_application_password'] = $data['wp_application_password'];
         }
 
         $user->update($update);

@@ -86,7 +86,7 @@ class EditorialController extends Controller
         if ($story->status !== Story::STATUS_DRAFT) {
             return back()->with('error', 'Only drafts can be published.');
         }
-        PublishToWordPress::dispatch($story->id);
+        PublishToWordPress::dispatch($story->id, auth()->id());
 
         return redirect()->route('editorial')->with('success', 'Publishing to WordPress...');
     }

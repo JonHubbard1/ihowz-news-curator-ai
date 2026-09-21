@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Story;
+use App\Models\User;
 use App\Models\WpSetting;
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\ClientException;
@@ -11,6 +12,10 @@ use GuzzleHttp\RequestOptions;
 
 class WordPressService
 {
+    private ?string $authUsername = null;
+
+    private ?string $authPassword = null;
+
     private function settings(): ?WpSetting
     {
         return WpSetting::current();
@@ -21,15 +26,33 @@ class WordPressService
         return rtrim($this->settings()?->base_url ?? '', '/');
     }
 
+    /**
+     * Use the publishing user's own WordPress credentials when they have an
+     * Application Password set (their email is used as the username), and
+     * fall back to the global WordPress settings otherwise.
+     */
+    private function resolveCredentials(?User $publisher): void
+    {
+        if ($publisher?->wp_application_password) {
+            $this->authUsername = $publisher->email;
+            $this->authPassword = $publisher->wp_application_password;
+
+            return;
+        }
+
+        $settings = $this->settings();
+        $this->authUsername = $settings?->username;
+        $this->authPassword = $settings?->application_password;
+    }
+
     private function headers(): array
     {
-        $settings = $this->settings();
-        if (! $settings || ! $settings->username || ! $settings->application_password) {
-            throw new \RuntimeException('WordPress credentials are not configured.');
+        if (! $this->authUsername || ! $this->authPassword) {
+            throw new \RuntimeException('WordPress credentials are not configured. Set a WordPress Application Password on the user, or configure the global WordPress settings.');
         }
 
         return [
-            'Authorization' => 'Basic '.base64_encode("{$settings->username}:{$settings->application_password}"),
+            'Authorization' => 'Basic '.base64_encode("{$this->authUsername}:{$this->authPassword}"),
             'Accept' => 'application/json',
         ];
     }
@@ -97,7 +120,7 @@ class WordPressService
 
         if ($status === 401) {
             throw new \RuntimeException(
-                'WordPress authentication failed. Please ensure the username and application password are correct and that Application Passwords are enabled.',
+                'WordPress authentication failed. Please ensure the username/email and application password belong to the same WordPress account and that Application Passwords are enabled.',
                 401,
                 $exception
             );
@@ -114,8 +137,10 @@ class WordPressService
         throw new \RuntimeException('WordPress API error ('.$status.'): '.$message, $status ?? 0, $exception);
     }
 
-    public function publish(Story $story): array
+    public function publish(Story $story, ?User $publisher = null): array
     {
+        $this->resolveCredentials($publisher);
+
         $base = $this->baseUrl();
 
         $categoryId = $this->ensureCategory($base, $story->suggested_category ?: 'News');

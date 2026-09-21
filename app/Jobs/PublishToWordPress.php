@@ -3,6 +3,7 @@
 namespace App\Jobs;
 
 use App\Models\Story;
+use App\Models\User;
 use App\Services\WordPressService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -19,7 +20,10 @@ class PublishToWordPress implements ShouldQueue
 
     public int $timeout = 120;
 
-    public function __construct(public int $storyId) {}
+    public function __construct(
+        public int $storyId,
+        public ?int $publisherId = null,
+    ) {}
 
     public function handle(WordPressService $wordpress): void
     {
@@ -27,7 +31,7 @@ class PublishToWordPress implements ShouldQueue
         if ($story->status !== Story::STATUS_DRAFT) {
             throw new \RuntimeException('Story must be in draft status to publish.');
         }
-        $wordpress->publish($story);
+        $wordpress->publish($story, $this->publisherId ? User::find($this->publisherId) : null);
     }
 
     public function failed(Throwable $exception): void

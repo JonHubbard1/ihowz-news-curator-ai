@@ -51,6 +51,13 @@
                 </div>
             </div>
 
+            <div>
+                <label class="mb-1 block text-sm font-medium text-gray-700">WordPress Application Password (optional)</label>
+                <input type="password" name="wp_application_password" value="{{ old('wp_application_password') }}"
+                    class="w-full rounded-lg border border-gray-300 px-3 py-2 text-base">
+                <p class="mt-1 text-xs text-gray-500">Publishes stories as this user's WordPress account (their email is used as the username). Generate it in WP admin under Users → Profile → Application Passwords. Leave empty to use the global WordPress settings.</p>
+            </div>
+
             <label class="flex items-center gap-2 text-sm text-gray-700">
                 <input type="checkbox" name="is_admin" value="1" {{ old('is_admin') ? 'checked' : '' }}>
                 Admin user
@@ -100,6 +107,15 @@
                                     <input type="password" name="password_confirmation" minlength="8"
                                         class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm">
                                 </div>
+                            </div>
+
+                            <div>
+                                <label class="mb-1 block text-xs font-medium text-gray-500">WordPress Application Password</label>
+                                <input type="password" name="wp_application_password"
+                                    class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm">
+                                <p class="mt-1 text-xs text-gray-500">
+                                    {{ $user->wp_application_password ? 'Set — stories this user publishes go to WordPress as '.$user->email.'. Enter a new value to replace it; leave blank to keep.' : 'Not set — publishing falls back to the global WordPress settings. Generate one in WP admin under Users → Profile → Application Passwords.' }}
+                                </p>
                             </div>
 
                             <label class="flex items-center gap-2 text-sm text-gray-700">
