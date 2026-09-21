@@ -164,16 +164,7 @@
                 <input type="url" name="base_url" value="{{ $wp->base_url }}" placeholder="https://ihowz.co.uk" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm">
             </div>
 
-            <div>
-                <label class="mb-1 block text-sm font-medium text-gray-700">Username</label>
-                <input name="username" value="{{ $wp->username }}" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm">
-            </div>
-
-            <div>
-                <label class="mb-1 block text-sm font-medium text-gray-700">Application Password</label>
-                <input type="password" name="application_password" value="{{ $wp->application_password }}" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm">
-                <p class="mt-1 text-xs text-gray-500">Generate this in WP admin under Users → Profile → Application Passwords.</p>
-            </div>
+            <p class="text-xs text-gray-500">Authentication is per-user: each user sets their own WordPress Application Password on the Users page.</p>
 
             <button type="submit" class="w-full rounded-lg bg-gray-900 px-4 py-3 text-sm font-semibold text-white active:bg-gray-800">Save WordPress Settings</button>
         </form>

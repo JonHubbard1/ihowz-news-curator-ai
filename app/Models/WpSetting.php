@@ -11,8 +11,6 @@ class WpSetting extends Model
 
     protected $fillable = [
         'base_url',
-        'username',
-        'application_password',
     ];
 
     public static function current(): self

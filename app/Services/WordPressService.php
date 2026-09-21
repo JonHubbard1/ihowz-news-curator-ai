@@ -27,28 +27,20 @@ class WordPressService
     }
 
     /**
-     * Use the publishing user's own WordPress credentials when they have an
-     * Application Password set (their email is used as the username), and
-     * fall back to the global WordPress settings otherwise.
+     * Authenticate as the publishing user: their email is the WordPress
+     * username and their Application Password the secret, both set on the
+     * Users page.
      */
     private function resolveCredentials(?User $publisher): void
     {
-        if ($publisher?->wp_application_password) {
-            $this->authUsername = $publisher->email;
-            $this->authPassword = $publisher->wp_application_password;
-
-            return;
-        }
-
-        $settings = $this->settings();
-        $this->authUsername = $settings?->username;
-        $this->authPassword = $settings?->application_password;
+        $this->authUsername = $publisher?->wp_application_password ? $publisher->email : null;
+        $this->authPassword = $publisher?->wp_application_password;
     }
 
     private function headers(): array
     {
         if (! $this->authUsername || ! $this->authPassword) {
-            throw new \RuntimeException('WordPress credentials are not configured. Set a WordPress Application Password on the user, or configure the global WordPress settings.');
+            throw new \RuntimeException('No WordPress credentials for the publishing user. Ask an admin to set your WordPress Application Password on the Users page (generate it in WP admin under Users → Profile → Application Passwords).');
         }
 
         return [

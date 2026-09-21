@@ -97,8 +97,6 @@ class AdminController extends Controller
     {
         $data = $request->validate([
             'base_url' => 'nullable|url|max:512',
-            'username' => 'nullable|string|max:255',
-            'application_password' => 'nullable|string|max:255',
         ]);
 
         WpSetting::current()->update($data);
