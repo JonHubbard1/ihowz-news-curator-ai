@@ -112,6 +112,7 @@
                             <div>
                                 <label class="mb-1 block text-xs font-medium text-gray-500">WordPress Application Password</label>
                                 <input type="password" name="wp_application_password"
+                                    placeholder="{{ $user->wp_application_password ? str_repeat('•', 12) : '' }}"
                                     class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm">
                                 <p class="mt-1 text-xs text-gray-500">
                                     {{ $user->wp_application_password ? 'Set — stories this user publishes go to WordPress as '.$user->email.'. Enter a new value to replace it; leave blank to keep.' : 'Not set — publishing falls back to the global WordPress settings. Generate one in WP admin under Users → Profile → Application Passwords.' }}

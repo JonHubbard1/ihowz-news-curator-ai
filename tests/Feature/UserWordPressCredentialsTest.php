@@ -61,6 +61,25 @@ class UserWordPressCredentialsTest extends TestCase
         $this->assertSame('secret-app-password', $user->fresh()->wp_application_password);
     }
 
+    public function test_blank_password_fields_are_ignored_when_updating_other_details(): void
+    {
+        $this->actingAs($this->admin());
+        $user = User::factory()->create(['password' => 'original-password']);
+        $originalHash = $user->password;
+
+        $this->put(route('users.update', $user), [
+            'name' => 'Updated Name',
+            'email' => $user->email,
+            'password' => '',
+            'password_confirmation' => '',
+            'wp_application_password' => '',
+        ])->assertRedirect();
+
+        $fresh = $user->fresh();
+        $this->assertSame('Updated Name', $fresh->name);
+        $this->assertSame($originalHash, $fresh->password);
+    }
+
     public function test_non_admins_cannot_manage_users(): void
     {
         $this->actingAs(User::factory()->create(['is_admin' => false]));
