@@ -34,7 +34,8 @@
     @else
         <div class="space-y-4">
             @foreach ($stories as $story)
-                <article class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+                <article x-data="{ visible: true }" x-show="visible" x-transition.opacity.duration.300ms
+                    class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
                     <div class="mb-2 flex items-center gap-2 text-xs text-gray-500">
                         <span class="font-medium text-teal-700">{{ $story->source ?: 'Unknown source' }}</span>
                         <span>•</span>
@@ -56,7 +57,7 @@
                     </div>
 
                     <div class="grid grid-cols-2 gap-3">
-                        <form method="POST" action="{{ route('triage.scrap', $story) }}">
+                        <form method="POST" action="{{ route('triage.scrap', $story) }}" x-on:submit="visible = false">
                             @csrf
                             <button type="submit"
                                 class="w-full rounded-lg border border-gray-300 bg-white px-4 py-3 text-sm font-semibold text-gray-700 shadow-sm active:bg-gray-100">
@@ -64,7 +65,7 @@
                             </button>
                         </form>
 
-                        <form method="POST" action="{{ route('triage.use', $story) }}">
+                        <form method="POST" action="{{ route('triage.use', $story) }}" x-on:submit="visible = false">
                             @csrf
                             <button type="submit"
                                 class="w-full rounded-lg bg-teal-700 px-4 py-3 text-sm font-semibold text-white shadow active:bg-teal-800">
