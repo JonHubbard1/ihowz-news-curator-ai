@@ -49,6 +49,8 @@ class Story extends Model
 
     public const STATUS_PUBLISHED = 'published';
 
+    public const STATUS_PUBLISHING = 'publishing';
+
     public function edits(): HasMany
     {
         return $this->hasMany(StoryEdit::class);

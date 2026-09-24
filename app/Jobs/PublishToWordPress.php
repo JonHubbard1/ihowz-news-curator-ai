@@ -28,7 +28,7 @@ class PublishToWordPress implements ShouldQueue
     public function handle(WordPressService $wordpress): void
     {
         $story = Story::findOrFail($this->storyId);
-        if ($story->status !== Story::STATUS_DRAFT) {
+        if (! in_array($story->status, [Story::STATUS_DRAFT, Story::STATUS_PUBLISHING], true)) {
             throw new \RuntimeException('Story must be in draft status to publish.');
         }
         $wordpress->publish($story, $this->publisherId ? User::find($this->publisherId) : null);
@@ -37,7 +37,7 @@ class PublishToWordPress implements ShouldQueue
     public function failed(Throwable $exception): void
     {
         $story = Story::find($this->storyId);
-        if ($story && $story->status === Story::STATUS_PROCESSING) {
+        if ($story && in_array($story->status, [Story::STATUS_PROCESSING, Story::STATUS_PUBLISHING], true)) {
             $story->update(['status' => Story::STATUS_DRAFT]);
         }
     }

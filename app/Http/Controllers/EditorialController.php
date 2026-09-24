@@ -12,10 +12,16 @@ class EditorialController extends Controller
 {
     public function index()
     {
+        $working = Story::whereIn('status', [
+            Story::STATUS_USED,
+            Story::STATUS_PROCESSING,
+            Story::STATUS_PUBLISHING,
+        ])->latest()->get();
+
         $drafts = Story::forStatus(Story::STATUS_DRAFT)->latest()->get();
         $published = Story::forStatus(Story::STATUS_PUBLISHED)->latest()->get();
 
-        return view('editorial.index', compact('drafts', 'published'));
+        return view('editorial.index', compact('working', 'drafts', 'published'));
     }
 
     public function show(Story $story)
@@ -86,6 +92,7 @@ class EditorialController extends Controller
         if ($story->status !== Story::STATUS_DRAFT) {
             return back()->with('error', 'Only drafts can be published.');
         }
+        $story->update(['status' => Story::STATUS_PUBLISHING]);
         PublishToWordPress::dispatch($story->id, auth()->id());
 
         return redirect()->route('editorial')->with('success', 'Publishing to WordPress...');
