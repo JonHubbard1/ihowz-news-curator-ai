@@ -25,6 +25,13 @@ class AiSetting extends Model
         'article_length_short',
         'article_length_medium',
         'article_length_long',
+        'discovery_filter_mode',
+        'discovery_filter_model',
+        'auto_tune_search_terms',
+    ];
+
+    protected $casts = [
+        'auto_tune_search_terms' => 'boolean',
     ];
 
     public static function current(): self

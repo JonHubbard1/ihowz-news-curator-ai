@@ -10,6 +10,15 @@ class AiCostLogger
 {
     public function logLlm(Story $story, string $model, array $response): AiCostLog
     {
+        return $this->logOperation($story, $model, $response, 'llm');
+    }
+
+    /**
+     * Log a token-metered chat completion against any operation label.
+     * Pass a null story for background jobs (digests, filters on discovery).
+     */
+    public function logOperation(?Story $story, string $model, array $response, string $operation): AiCostLog
+    {
         $settings = AiSetting::current();
 
         $inputTokens = $response['usage']['prompt_tokens'] ?? 0;
@@ -20,9 +29,9 @@ class AiCostLogger
         $costUsd = $baseCostUsd * $multiplier;
 
         return AiCostLog::create([
-            'story_id' => $story->id,
+            'story_id' => $story?->id,
             'provider' => 'openai',
-            'operation' => 'llm',
+            'operation' => $operation,
             'model' => $model,
             'input_tokens' => $inputTokens,
             'output_tokens' => $outputTokens,

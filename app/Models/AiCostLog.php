@@ -11,6 +11,13 @@ class AiCostLog extends Model
     /** @use HasFactory<AiCostLogFactory> */
     use HasFactory;
 
+    public const OPERATION_LABELS = [
+        'llm' => 'LLM',
+        'image' => 'Image',
+        'discovery_filter' => 'Discovery filter',
+        'preference_digest' => 'Preference digest',
+    ];
+
     protected $fillable = [
         'story_id',
         'provider',

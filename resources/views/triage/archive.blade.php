@@ -9,7 +9,7 @@
     </div>
 
     <p class="mb-4 text-sm text-gray-500">
-        Scrapped stories are kept here for 48 hours before being automatically deleted.
+        Scrapped stories are kept here for 90 days before being automatically deleted — they teach the assistant what to look for (and what to skip).
     </p>
 
     @if (session('success'))
@@ -31,8 +31,12 @@
                         <span class="font-medium text-teal-700">{{ $story->source ?: 'Unknown source' }}</span>
                         <span>•</span>
                         <span class="rounded bg-gray-100 px-2 py-0.5">{{ $story->trigger_keyword }}</span>
+                        @if ($story->scrap_reason)
+                            <span>•</span>
+                            <span class="rounded bg-amber-100 px-2 py-0.5 font-medium text-amber-800">{{ \App\Models\Story::SCRAP_REASON_LABELS[$story->scrap_reason] ?? $story->scrap_reason }}@if ($story->scrap_reason === 'other' && $story->scrap_reason_text): {{ $story->scrap_reason_text }}@endif</span>
+                        @endif
                         <span>•</span>
-                        <span>Deleted {{ $story->archived_at->addHours(48)->diffForHumans() }}</span>
+                        <span>Deleted {{ $story->archived_at->addDays(90)->diffForHumans() }}</span>
                     </div>
 
                     <h3 class="mb-2 text-base font-semibold leading-snug text-gray-900">{{ $story->headline }}</h3>

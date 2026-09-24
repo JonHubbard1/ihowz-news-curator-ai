@@ -28,6 +28,13 @@ class Story extends Model
         'published_at',
         'invoiced_at',
         'archived_at',
+        'scrap_reason',
+        'scrap_reason_text',
+        'filter_decision',
+        'filter_source',
+        'filter_reason',
+        'filter_confidence',
+        'uk_relevant',
     ];
 
     protected $casts = [
@@ -35,6 +42,8 @@ class Story extends Model
         'suggested_tags' => 'array',
         'published_at' => 'datetime',
         'archived_at' => 'datetime',
+        'filter_confidence' => 'float',
+        'uk_relevant' => 'boolean',
     ];
 
     public const STATUS_PENDING = 'pending';
@@ -50,6 +59,24 @@ class Story extends Model
     public const STATUS_PUBLISHED = 'published';
 
     public const STATUS_PUBLISHING = 'publishing';
+
+    public const STATUS_SKIPPED = 'assistant_skipped';
+
+    public const SCRAP_REASON_LABELS = [
+        'not_uk' => 'Not UK related',
+        'off_topic' => 'Off-topic',
+        'not_newsworthy' => 'Not newsworthy',
+        'bad_source' => 'Bad/duplicate source',
+        'other' => 'Other',
+    ];
+
+    public const ACCEPTED_STATUSES = [
+        self::STATUS_USED,
+        self::STATUS_PROCESSING,
+        self::STATUS_DRAFT,
+        self::STATUS_PUBLISHING,
+        self::STATUS_PUBLISHED,
+    ];
 
     public function edits(): HasMany
     {

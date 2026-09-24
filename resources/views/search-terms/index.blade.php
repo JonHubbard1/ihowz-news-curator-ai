@@ -39,14 +39,23 @@
 
     <!-- Existing terms -->
     <section class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-        <h3 class="mb-3 text-sm font-semibold uppercase tracking-wide text-gray-500">Existing phrases</h3>
+        <h3 class="mb-1 text-sm font-semibold uppercase tracking-wide text-gray-500">Existing phrases</h3>
+        <p class="mb-3 text-xs text-gray-400">Priority decides the order search terms are fetched in, nothing else. Stats show how often stories from each phrase were used vs scrapped (pending and assistant-skipped stories are not counted). Auto-tuning sets priority from these rates nightly when enabled in Admin settings.</p>
 
         @if ($terms->isEmpty())
             <p class="text-sm text-gray-500">No search terms configured yet.</p>
         @else
             <div class="divide-y divide-gray-100">
                 @foreach ($terms as $term)
+                    @php $termStat = $keywordStats[strtolower($term->phrase)] ?? null; @endphp
                     <div class="py-4">
+                        <div class="mb-2 text-xs">
+                            @if ($termStat && $termStat['judged'] > 0)
+                                <span class="rounded bg-gray-100 px-2 py-0.5 font-medium text-gray-700">{{ round($termStat['accept_rate'] * 100) }}% used · {{ $termStat['judged'] }} judged</span>
+                            @else
+                                <span class="text-gray-400">No decisions yet</span>
+                            @endif
+                        </div>
                         <form method="POST" action="{{ route('search-terms.update', $term) }}" class="space-y-3">
                             @csrf
                             @method('PUT')
@@ -86,6 +95,26 @@
                             @csrf
                             @method('DELETE')
                         </form>
+                    </div>
+                @endforeach
+            </div>
+        @endif
+    </section>
+
+    <!-- Source performance -->
+    <section class="mt-6 rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+        <h3 class="mb-1 text-sm font-semibold uppercase tracking-wide text-gray-500">Source performance</h3>
+        <p class="mb-3 text-xs text-gray-400">Use vs scrap history for stories grouped by their original publisher.</p>
+
+        @php $rated = collect($sourceStats)->filter(fn (array $stat) => $stat['judged'] > 0)->take(10); @endphp
+        @if ($rated->isEmpty())
+            <p class="text-sm text-gray-500">No scrapped or used stories yet — stats appear once you start triaging.</p>
+        @else
+            <div class="divide-y divide-gray-100">
+                @foreach ($rated as $source => $stat)
+                    <div class="flex items-center justify-between gap-3 py-2">
+                        <span class="min-w-0 truncate text-sm text-gray-700">{{ $source }}</span>
+                        <span class="shrink-0 rounded bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-700">{{ round($stat['accept_rate'] * 100) }}% used · {{ $stat['judged'] }} judged</span>
                     </div>
                 @endforeach
             </div>

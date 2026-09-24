@@ -2,6 +2,8 @@
 
 namespace App\Services;
 
+use App\Jobs\FilterDiscoveredStory;
+use App\Models\AiSetting;
 use App\Models\RssFeed;
 use App\Models\SearchTerm;
 use App\Models\Story;
@@ -54,13 +56,14 @@ class DiscoveryService
 
     public function save(array $stories): int
     {
+        $filterMode = AiSetting::current()->discovery_filter_mode;
         $count = 0;
         foreach ($stories as $item) {
             $exists = Story::where('url', $item['url'])->first();
             if ($exists) {
                 continue;
             }
-            Story::create([
+            $story = Story::create([
                 'url' => $item['url'],
                 'headline' => Str::limit($item['headline'], 500),
                 'source' => $item['source'] ?? null,
@@ -69,6 +72,9 @@ class DiscoveryService
                 'trigger_keyword' => $item['trigger_keyword'] ?? null,
                 'cluster_id' => $item['cluster_id'] ?? null,
             ]);
+            if ($filterMode !== 'off') {
+                FilterDiscoveredStory::dispatch($story->id);
+            }
             $count++;
         }
 
@@ -129,7 +135,8 @@ class DiscoveryService
 
     private function fetchGoogleNews(string $keyword): array
     {
-        $url = 'https://news.google.com/rss/search?q='.urlencode($keyword);
+        // gl/hl/ceid regionalise the feed to UK results — the single biggest US-noise reducer.
+        $url = 'https://news.google.com/rss/search?q='.urlencode($keyword).'&gl=GB&hl=en-GB&ceid=GB:en';
         try {
             $xml = Http::withOptions(['verify' => false])->timeout(15)->get($url)->body();
         } catch (\Throwable $e) {

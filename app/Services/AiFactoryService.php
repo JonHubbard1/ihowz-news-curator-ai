@@ -33,6 +33,28 @@ class AiFactoryService
         return AiSetting::current()->llm_model ?: config('news.default_llm_model');
     }
 
+    /**
+     * Raw chat completion returned as an array, for callers that supply their
+     * own model, prompt and parsing (discovery filter, preference digest).
+     *
+     * @param  array<int, array{role: string, content: string}>  $messages
+     * @return array<string, mixed>
+     */
+    public function chatArray(string $model, array $messages, float $temperature = 0.6, ?int $timeout = null, ?int $maxTokens = null): array
+    {
+        $payload = [
+            'model' => $model,
+            'temperature' => $temperature,
+            'messages' => $messages,
+        ];
+
+        if ($maxTokens !== null) {
+            $payload['max_tokens'] = $maxTokens;
+        }
+
+        return $this->client($timeout ?? 60)->chat()->create($payload)->toArray();
+    }
+
     private function imageModel(): string
     {
         return AiSetting::current()->image_model ?: config('news.default_image_model');

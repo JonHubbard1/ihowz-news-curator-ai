@@ -17,7 +17,9 @@ class UserCostsController extends Controller
         $actualSpendUsd = $actualCostUsd * $markupMultiplier;
         $actualSpendGbp = $actualSpendUsd * 0.79;
 
-        $totalLlmCalls = AiCostLog::whereNull('invoiced_at')->where('operation', 'llm')->count();
+        $totalLlmCalls = AiCostLog::whereNull('invoiced_at')
+            ->whereIn('operation', ['llm', 'discovery_filter', 'preference_digest'])
+            ->count();
         $totalImageCalls = AiCostLog::whereNull('invoiced_at')->where('operation', 'image')->count();
         $totalTokens = (float) AiCostLog::whereNull('invoiced_at')->sum('input_tokens')
             + (float) AiCostLog::whereNull('invoiced_at')->sum('output_tokens');

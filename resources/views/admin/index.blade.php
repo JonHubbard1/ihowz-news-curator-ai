@@ -148,6 +148,41 @@
                 <textarea name="brand_voice" rows="3" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm">{{ $ai->brand_voice }}</textarea>
             </div>
 
+            <div class="border-t border-gray-100 pt-4">
+                <h4 class="mb-3 text-sm font-semibold uppercase tracking-wide text-gray-500">Discovery assistant</h4>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="mb-1 block text-sm font-medium text-gray-700">Screen new stories</label>
+                        <select name="discovery_filter_mode" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm">
+                            <option value="off" @selected($ai->discovery_filter_mode === 'off')>Off</option>
+                            <option value="advisory" @selected($ai->discovery_filter_mode === 'advisory')>Advisory (record only)</option>
+                            <option value="enforce" @selected($ai->discovery_filter_mode === 'enforce')>Enforce (skip weak stories)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="mb-1 block text-sm font-medium text-gray-700">Filter model</label>
+                        <select name="discovery_filter_model" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm">
+                            <option value="gpt-4.1" @selected($ai->discovery_filter_model === 'gpt-4.1')>GPT-4.1</option>
+                            <option value="gpt-4.1-mini" @selected($ai->discovery_filter_model === 'gpt-4.1-mini')>GPT-4.1 Mini</option>
+                            <option value="gpt-4.1-nano" @selected($ai->discovery_filter_model === 'gpt-4.1-nano')>GPT-4.1 Nano</option>
+                            <option value="gpt-5" @selected($ai->discovery_filter_model === 'gpt-5')>GPT-5</option>
+                            <option value="gpt-4o" @selected($ai->discovery_filter_model === 'gpt-4o')>GPT-4o</option>
+                            <option value="gpt-4o-mini" @selected($ai->discovery_filter_model === 'gpt-4o-mini')>GPT-4o Mini</option>
+                        </select>
+                    </div>
+                </div>
+
+                <p class="mt-2 text-xs text-gray-500">Advisory records the assistant's opinion on each discovered story without hiding anything — use it to sanity-check before enforcing. Enforce moves stories the assistant rejects into an “Assistant skipped” list on Triage; rescuing one back to the feed teaches the assistant it was wrong. Screening calls are logged and billed like other AI usage.</p>
+
+                <div class="mt-3 flex items-center gap-2">
+                    <input type="checkbox" id="auto_tune_search_terms" name="auto_tune_search_terms" value="1" @checked($ai->auto_tune_search_terms)
+                        class="h-4 w-4 rounded border-gray-300 text-teal-600 focus:ring-teal-500">
+                    <label for="auto_tune_search_terms" class="text-sm text-gray-700">Auto-tune search term priorities nightly</label>
+                </div>
+                <p class="mt-1 text-xs text-gray-500">Sets each search term's priority to its accept rate (percentage of stories you used vs scrapped, minimum 10 decisions) so better-performing phrases are fetched first. Never activates or deactivates terms.</p>
+            </div>
+
             <button type="submit" class="w-full rounded-lg bg-teal-700 px-4 py-3 text-sm font-semibold text-white active:bg-teal-800">Save AI Settings</button>
         </form>
     </section>

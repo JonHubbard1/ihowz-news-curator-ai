@@ -36,6 +36,7 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/triage/{story}/scrap', [TriageController::class, 'scrapStory'])->name('triage.scrap');
     Route::get('/triage/archive', [TriageController::class, 'archive'])->name('triage.archive');
     Route::post('/triage/{story}/restore', [TriageController::class, 'restore'])->name('triage.restore');
+    Route::post('/triage/{story}/rescue', [TriageController::class, 'rescue'])->name('triage.rescue');
 
     Route::get('/editorial', [EditorialController::class, 'index'])->name('editorial');
     Route::get('/editorial/{story}', [EditorialController::class, 'show'])->name('editorial.show');

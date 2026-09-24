@@ -3,15 +3,20 @@
 namespace App\Http\Controllers;
 
 use App\Models\SearchTerm;
+use App\Services\TriageStatsService;
 use Illuminate\Http\Request;
 
 class SearchTermController extends Controller
 {
-    public function index()
+    public function index(TriageStatsService $stats)
     {
         $terms = SearchTerm::orderByDesc('priority')->orderBy('phrase')->get();
+        $keywordStats = $stats->keywordStats();
 
-        return view('search-terms.index', compact('terms'));
+        $sourceStats = $stats->sourceStats();
+        uasort($sourceStats, fn (array $a, array $b) => $b['judged'] <=> $a['judged']);
+
+        return view('search-terms.index', compact('terms', 'keywordStats', 'sourceStats'));
     }
 
     public function store(Request $request)

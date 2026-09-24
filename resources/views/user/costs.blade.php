@@ -38,7 +38,7 @@
                 @foreach ($recentCosts as $cost)
                     <div class="py-3">
                         <div class="flex items-center justify-between">
-                            <p class="text-sm font-medium text-gray-900">{{ ucfirst($cost->operation) }}</p>
+                            <p class="text-sm font-medium text-gray-900">{{ \App\Models\AiCostLog::OPERATION_LABELS[$cost->operation] ?? ucfirst($cost->operation) }}</p>
                             <p class="text-sm font-semibold text-gray-900">${{ number_format($cost->cost_usd, 4) }}</p>
                         </div>
                         <p class="text-xs text-gray-500">{{ $cost->provider }} / {{ $cost->model }}</p>

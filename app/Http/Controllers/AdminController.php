@@ -22,7 +22,9 @@ class AdminController extends Controller
         $markupMultiplier = (float) $ai->cost_markup_multiplier ?: 1.0;
         $uninvoicedSpendUsd = $uninvoicedCostUsd * $markupMultiplier;
         $uninvoicedSpendGbp = $uninvoicedSpendUsd * 0.79;
-        $totalLlmCalls = AiCostLog::whereNull('invoiced_at')->where('operation', 'llm')->count();
+        $totalLlmCalls = AiCostLog::whereNull('invoiced_at')
+            ->whereIn('operation', ['llm', 'discovery_filter', 'preference_digest'])
+            ->count();
         $totalImageCalls = AiCostLog::whereNull('invoiced_at')->where('operation', 'image')->count();
         $totalTokens = (float) AiCostLog::whereNull('invoiced_at')->sum('input_tokens')
             + (float) AiCostLog::whereNull('invoiced_at')->sum('output_tokens');
@@ -84,11 +86,19 @@ class AdminController extends Controller
             'article_length_short' => 'required|integer|min:100|max:5000',
             'article_length_medium' => 'required|integer|min:100|max:5000',
             'article_length_long' => 'required|integer|min:100|max:5000',
+            'discovery_filter_mode' => 'required|string|in:off,advisory,enforce',
+            'discovery_filter_model' => 'required|string|max:64',
         ]);
 
         $data = array_filter($data, fn ($value) => $value !== null);
 
-        AiSetting::current()->update($data);
+        $ai = AiSetting::current();
+
+        // Checkboxes are absent from the request when unchecked, so resolve the
+        // toggle from the request with the current value as fallback.
+        $data['auto_tune_search_terms'] = $request->boolean('auto_tune_search_terms', $ai->auto_tune_search_terms);
+
+        $ai->update($data);
 
         return back()->with('success', 'AI settings saved.');
     }
